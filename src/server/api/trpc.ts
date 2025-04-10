@@ -1,16 +1,17 @@
 /**
  * YOU PROBABLY DON'T NEED TO EDIT THIS FILE, UNLESS:
- * 1. You want to modify request context (see Part 1).
- * 2. You want to create a new middleware or type of procedure (see Part 3).
+ * 1. You want to modify request context (see Part 1)
+ * 2. You want to create a new middleware or type of procedure (see Part 3)
  *
- * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
- * need to use are documented accordingly near the end.
+ * tl;dr - this is where all the tRPC server stuff is created and plugged in.
+ * The pieces you will need to use are documented accordingly near the end
  */
-import { initTRPC } from "@trpc/server";
-import superjson from "superjson";
-import { ZodError } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js"
+import { TRPCError, initTRPC } from "@trpc/server"
+import superjson from "superjson"
+import { ZodError } from "zod"
 
-import { db } from "~/server/db/src/client";
+import { db } from "~/server/db/src/client"
 
 /**
  * 1. CONTEXT
@@ -24,83 +25,138 @@ import { db } from "~/server/db/src/client";
  *
  * @see https://trpc.io/docs/server/context
  */
-export const createTRPCContext = async (opts: { headers: Headers }) => {
+export const createTRPCContext = async (opts: {
+  headers: Headers
+  supabase: SupabaseClient
+  supabaseAdmin: SupabaseClient
+}) => {
+  const {
+    data: { user }
+  } = await opts.supabase.auth.getUser()
+
   return {
     db,
-    ...opts,
-  };
-};
+    user,
+    ...opts
+  }
+}
 
 /**
  * 2. INITIALIZATION
  *
- * This is where the tRPC API is initialized, connecting the context and transformer. We also parse
- * ZodErrors so that you get typesafety on the frontend if your procedure fails due to validation
- * errors on the backend.
+ * This is where the trpc api is initialized, connecting the context and
+ * transformer
  */
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
-  errorFormatter({ shape, error }) {
+  errorFormatter: ({ shape, error }) => {
+    // For Zod errors, extract the first error message for cleaner client-side display
+    if (error.cause instanceof ZodError) {
+      const firstError = error.cause.errors[0]
+      if (firstError && firstError.message !== "Required") {
+        return {
+          ...shape,
+          message: firstError.message,
+          data: {
+            ...shape.data,
+            zodError: error.cause.flatten()
+          }
+        }
+      } else {
+        return {
+          ...shape,
+          message: "Invalid request",
+          data: {
+            ...shape.data,
+            zodError: error.cause.flatten()
+          }
+        }
+      }
+    }
+
+    // For other errors, maintain the original format
     return {
       ...shape,
       data: {
         ...shape.data,
-        zodError:
-          error.cause instanceof ZodError ? error.cause.flatten() : null,
-      },
-    };
-  },
-});
+        zodError: error.cause instanceof ZodError ? error.cause.flatten() : null
+      }
+    }
+  }
+})
 
 /**
- * Create a server-side caller.
- *
+ * Create a server-side caller
  * @see https://trpc.io/docs/server/server-side-calls
  */
-export const createCallerFactory = t.createCallerFactory;
+export const createCallerFactory = t.createCallerFactory
 
 /**
  * 3. ROUTER & PROCEDURE (THE IMPORTANT BIT)
  *
- * These are the pieces you use to build your tRPC API. You should import these a lot in the
- * "/src/server/api/routers" directory.
+ * These are the pieces you use to build your tRPC API. You should import these
+ * a lot in the /src/server/api/routers folder
  */
 
 /**
- * This is how you create new routers and sub-routers in your tRPC API.
- *
+ * This is how you create new routers and sub routers in your tRPC API
  * @see https://trpc.io/docs/router
  */
-export const createTRPCRouter = t.router;
+export const createTRPCRouter = t.router
+export const createRouterMerger = t.mergeRouters
 
 /**
- * Middleware for timing procedure execution and adding an artificial delay in development.
+ * Public (unauthorized) procedure
  *
- * You can remove this if you don't like it, but it can help catch unwanted waterfalls by simulating
- * network latency that would occur in production but not in local development.
+ * This is the base piece you use to build new queries and mutations on your
+ * tRPC API. It does not guarantee that a user querying is authorized, but you
+ * can still access user session data if they are logged in
  */
-const timingMiddleware = t.middleware(async ({ next, path }) => {
-  const start = Date.now();
+export const publicProcedure = t.procedure.use(async ({ ctx, next }) => {
+  const { supabase, supabaseAdmin: _sbAdmin, ...rest } = ctx
+  return next({
+    ctx: {
+      supabase,
+      ...rest
+    }
+  })
+})
 
-  if (t._config.isDev) {
-    // artificial delay in dev
-    const waitMs = Math.floor(Math.random() * 400) + 100;
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
+/**
+ * Protected (authenticated) procedure
+ *
+ * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
+ * the session is valid and guarantees `ctx.session.user` is not null.
+ *
+ * @see https://trpc.io/docs/procedures
+ */
+export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+  if (!ctx.user?.id) {
+    throw new TRPCError({ code: "UNAUTHORIZED" })
   }
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user
+    }
+  })
+})
 
-  const result = await next();
+// TODO: apply
 
-  const end = Date.now();
-  console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+// export const adminProtectedProcedure = t.procedure.use(({ ctx, next }) => {
+//   if (!ctx.user?.id) {
+//     throw new TRPCError({ code: "UNAUTHORIZED" })
+//   }
 
-  return result;
-});
+//   if (ctx.user.app_metadata.rbac?.role !== "admin") {
+//     throw new TRPCError({ code: "FORBIDDEN" })
+//   }
 
-/**
- * Public (unauthenticated) procedure
- *
- * This is the base piece you use to build new queries and mutations on your tRPC API. It does not
- * guarantee that a user querying is authorized, but you can still access user session data if they
- * are logged in.
- */
-export const publicProcedure = t.procedure.use(timingMiddleware);
+//   return next({
+//     ctx: {
+//       ...ctx,
+//       user: ctx.user
+//     }
+//   })
+// })

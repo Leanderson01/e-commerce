@@ -3,10 +3,10 @@ import postgres from "postgres"
 
 import * as schema from "./schema/index"
 
-if (!process.env.POSTGRES_URL) {
-  throw new Error("POSTGRES_URL is not set")
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not set")
 }
-const connectionString = process.env.POSTGRES_URL
+const connectionString = process.env.DATABASE_URL
 
 const client = postgres(connectionString, { prepare: false })
 
