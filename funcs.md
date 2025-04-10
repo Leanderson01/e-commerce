@@ -74,3 +74,45 @@ Observação:
     - Todas essas ações de administrador só podem ser realizadas caso o administrador esteja cadastrado e identificado com uma sessão válida de usuário
     - Os resultados dos relatórios gerenciais podem ser disponibilizados em text/html, text/plain ou application/pdf
     - Não precisa criar uma interface para inserir um administrador, isso pode ser feito diretamente no Banco de Dados
+
+## Tabelas do Banco de Dados
+
+### Lista de Tabelas Necessárias
+
+- **Usuario** (já existente)
+  - Armazena informações de autenticação dos usuários
+  - Diferencia entre clientes e administradores
+  - Campos principais: id, email, senha, tipo (admin/cliente), createdAt, updatedAt
+
+- **Perfil** (já existente)
+  - Armazena dados pessoais do usuário
+  - Campos principais: id, usuarioId, nome, endereco, telefone, dataNascimento, etc.
+
+- **Produto**
+  - Armazena informações sobre os produtos disponíveis
+  - Campos principais: id, categoriaId, nome, descricao, preco, quantidadeEstoque, imagemUrl, createdAt, updatedAt
+
+- **Categoria**
+  - Armazena as categorias de produtos
+  - Campos principais: id, nome, descricao, createdAt, updatedAt
+
+- **Carrinho**
+  - Armazena o carrinho de compras atual de cada usuário
+  - Campos principais: id, usuarioId, createdAt, updatedAt
+
+- **ItemCarrinho**
+  - Armazena os itens individuais nos carrinhos
+  - Campos principais: id, carrinhoId, produtoId, quantidade, precoUnitario, createdAt, updatedAt
+
+- **Pedido**
+  - Armazena as compras efetivadas
+  - Campos principais: id, usuarioId, dataCompra, valorTotal, status, createdAt, updatedAt
+
+- **ItemPedido**
+  - Armazena os itens individuais de cada pedido
+  - Campos principais: id, pedidoId, produtoId, quantidade, precoUnitario, createdAt, updatedAt
+
+- **Venda**
+  - Armazena registros financeiros de todas as vendas realizadas
+  - Permite que administradores tenham acesso detalhado às transações
+  - Campos principais: id, pedidoId, usuarioId, dataVenda, valorTotal, formaPagamento, status, createdAt, updatedAt

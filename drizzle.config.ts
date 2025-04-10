@@ -8,5 +8,7 @@ export default {
   dbCredentials: {
     url: env.DATABASE_URL,
   },
+  verbose: true,
+  strict: true,
   tablesFilter: ["e-commerce_*"],
 } satisfies Config;
