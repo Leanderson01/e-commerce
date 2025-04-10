@@ -116,3 +116,50 @@ Observação:
   - Armazena registros financeiros de todas as vendas realizadas
   - Permite que administradores tenham acesso detalhado às transações
   - Campos principais: id, pedidoId, usuarioId, dataVenda, valorTotal, formaPagamento, status, createdAt, updatedAt
+
+## Funções do Back-end
+
+### Autenticação e Usuários
+- **login** (já implementado)
+- **signup** (já implementado)
+- **logout** (já implementado)
+- **getUserLogged** - obter dados do usuário atualmente logado
+- **getUserProfile** - obter dados do perfil do usuário
+- **updateUserProfile** - atualizar dados do perfil
+- **deleteUserAccount** - excluir conta de usuário
+
+### Produtos
+- **getProducts** - listar produtos disponíveis/em estoque
+- **getProductById** - obter detalhes de um produto
+- **getProductsByCategory** - listar produtos por categoria
+- **createProduct** (admin) - adicionar novo produto
+- **updateProduct** (admin) - atualizar dados do produto
+- **updateProductStock** (admin) - atualizar estoque do produto
+- **deleteProduct** (admin) - remover produto
+- **uploadProductImage** (admin) - enviar imagem de produto
+
+### Categorias
+- **getCategories** - listar todas as categorias
+- **getCategoryById** - obter detalhes de uma categoria
+- **createCategory** (admin) - adicionar nova categoria
+- **updateCategory** (admin) - atualizar categoria
+- **deleteCategory** (admin) - remover categoria
+
+### Carrinho de Compras
+- **getCart** - obter carrinho atual do usuário
+- **addToCart** - adicionar produto ao carrinho
+- **updateCartItem** - atualizar quantidade de um item
+- **removeFromCart** - remover item do carrinho
+- **clearCart** - limpar o carrinho
+
+### Pedidos/Compras
+- **createOrder** - criar pedido a partir do carrinho atual
+- **getUserOrders** - listar pedidos do usuário atual
+- **getOrderById** - obter detalhes de um pedido
+- **getAllOrders** (admin) - listar todos os pedidos
+- **deleteOrder** (admin) - remover um pedido
+
+### Relatórios (Admin)
+- **getOrdersByCustomer** - obter total de compras por cliente em período
+- **getOutOfStockProducts** - listar produtos sem estoque
+- **getDailyRevenue** - obter receita diária em período específico
