@@ -113,6 +113,7 @@ export const createRouterMerger = t.mergeRouters
  * can still access user session data if they are logged in
  */
 export const publicProcedure = t.procedure.use(async ({ ctx, next }) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { supabase, supabaseAdmin: _sbAdmin, ...rest } = ctx
   return next({
     ctx: {
