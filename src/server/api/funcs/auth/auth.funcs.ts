@@ -1,32 +1,37 @@
-import { type SupabaseClient } from "@supabase/supabase-js"
-import type { DBClient } from "~/server/db/src/client"
-import { ProfilesTable, UsersTable } from "~/server/db/src/schema/user"
-import { v7 as uuidv7 } from "uuid"
-import type { LoginInput, SignupInput, UpdateUserProfileInput, DeleteUserAccountInput } from "./auth.types"
-import { eq } from "drizzle-orm"
+import { type SupabaseClient } from "@supabase/supabase-js";
+import type { DBClient } from "~/server/db/src/client";
+import { ProfilesTable, UsersTable } from "~/server/db/src/schema/user";
+import { v7 as uuidv7 } from "uuid";
+import type {
+  LoginInput,
+  SignupInput,
+  UpdateUserProfileInput,
+  DeleteUserAccountInput,
+} from "./auth.types";
+import { eq } from "drizzle-orm";
 
 export const login = async (
   input: LoginInput,
   db: DBClient,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
 ) => {
   try {
     // Check if user exists in our database first
     const user = await db.query.UsersTable.findFirst({
       where: (users, { eq }) => eq(users.email, input.email),
       with: {
-        _profile: true
-      }
-    })
+        _profile: true,
+      },
+    });
 
     if (!user) {
       return {
         data: null,
         error: {
           code: "NOT_FOUND",
-          message: "User not found"
-        }
-      }
+          message: "User not found",
+        },
+      };
     }
 
     // Check if user is active
@@ -35,16 +40,16 @@ export const login = async (
         data: null,
         error: {
           code: "UNAUTHORIZED",
-          message: "Account is inactive"
-        }
-      }
+          message: "Account is inactive",
+        },
+      };
     }
 
     // Use Supabase to validate credentials
     const { data, error } = await supabase.auth.signInWithPassword({
       email: input.email,
-      password: input.password
-    })
+      password: input.password,
+    });
 
     if (error) {
       return {
@@ -52,9 +57,9 @@ export const login = async (
         error: {
           code: "UNAUTHORIZED",
           message: "Invalid credentials",
-          cause: error
-        }
-      }
+          cause: error,
+        },
+      };
     }
 
     return {
@@ -63,35 +68,35 @@ export const login = async (
           id: user.id,
           email: user.email,
           role: user.role,
-          profile: user._profile
+          profile: user._profile,
         },
-        session: data.session
+        session: data.session,
       },
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error during login:", error)
+    console.error("Error during login:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to login",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-}
+};
 
 export const signup = async (
   input: SignupInput,
   db: DBClient,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
 ) => {
   try {
     // Check if user already exists
     const existingUser = await db.query.UsersTable.findFirst({
-      where: (users, { eq }) => eq(users.email, input.email)
-    })
+      where: (users, { eq }) => eq(users.email, input.email),
+    });
 
     if (existingUser) {
       return {
@@ -99,16 +104,16 @@ export const signup = async (
         error: {
           code: "CONFLICT",
           message: "User with this email already exists",
-          cause: existingUser
-        }
-      }
+          cause: existingUser,
+        },
+      };
     }
 
     // Register with Supabase - they handle password hashing
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: input.email,
-      password: input.password
-    })
+      password: input.password,
+    });
 
     if (authError) {
       return {
@@ -116,13 +121,13 @@ export const signup = async (
         error: {
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to register with Supabase",
-          cause: authError
-        }
-      }
+          cause: authError,
+        },
+      };
     }
 
     // Generate a new user ID
-    const userId = uuidv7()
+    const userId = uuidv7();
 
     // Create transaction to insert user and profile
     const [newUser] = await db.transaction(async (tx) => {
@@ -133,13 +138,13 @@ export const signup = async (
           id: userId,
           email: input.email,
           password: "SUPABASE_MANAGED", // We don't store actual passwords, Supabase handles that
-          role: input.role
+          role: input.role,
         })
-        .returning()
+        .returning();
 
       // Create profile with full name derived from first and last name
-      const fullName = `${input.profile.firstName} ${input.profile.lastName}`
-      
+      const fullName = `${input.profile.firstName} ${input.profile.lastName}`;
+
       // Insert profile
       const [profile] = await tx
         .insert(ProfilesTable)
@@ -154,12 +159,12 @@ export const signup = async (
           city: input.profile.city,
           state: input.profile.state,
           zipCode: input.profile.zipCode,
-          country: input.profile.country
+          country: input.profile.country,
         })
-        .returning()
+        .returning();
 
-      return [{ ...user, _profile: profile }]
-    })
+      return [{ ...user, _profile: profile }];
+    });
 
     return {
       data: {
@@ -167,28 +172,28 @@ export const signup = async (
           id: newUser.id,
           email: newUser.email,
           role: newUser.role,
-          profile: newUser._profile
+          profile: newUser._profile,
         },
-        session: authData.session
+        session: authData.session,
       },
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error during signup:", error)
+    console.error("Error during signup:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to register user",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-}
+};
 
 export const logout = async (supabase: SupabaseClient) => {
   try {
-    const { error } = await supabase.auth.signOut()
+    const { error } = await supabase.auth.signOut();
 
     if (error) {
       return {
@@ -196,156 +201,150 @@ export const logout = async (supabase: SupabaseClient) => {
         error: {
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to logout",
-          cause: error
-        }
-      }
+          cause: error,
+        },
+      };
     }
 
     return {
       data: { success: true },
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error during logout:", error)
+    console.error("Error during logout:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to logout",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-}
+};
 
-export const getUserLogged = async (
-  db: DBClient,
-  supabase: SupabaseClient
-) => {
+export const getUserLogged = async (db: DBClient, supabase: SupabaseClient) => {
   try {
-    const { data: sessionData } = await supabase.auth.getSession()
-    
+    const { data: sessionData } = await supabase.auth.getSession();
+
     if (!sessionData.session) {
       return {
         data: null,
         error: {
           code: "UNAUTHORIZED",
-          message: "No active session found"
-        }
-      }
+          message: "No active session found",
+        },
+      };
     }
-    
-    const userEmail = sessionData.session.user.email
-    
+
+    const userEmail = sessionData.session.user.email;
+
     if (!userEmail) {
       return {
         data: null,
         error: {
           code: "INTERNAL_SERVER_ERROR",
-          message: "User email not found in session"
-        }
-      }
+          message: "User email not found in session",
+        },
+      };
     }
-    
+
     const user = await db.query.UsersTable.findFirst({
       where: (users, { eq }) => eq(users.email, userEmail),
       with: {
-        _profile: true
-      }
-    })
-    
+        _profile: true,
+      },
+    });
+
     if (!user) {
       return {
         data: null,
         error: {
           code: "NOT_FOUND",
-          message: "User not found in database"
-        }
-      }
+          message: "User not found in database",
+        },
+      };
     }
-    
+
     return {
       data: {
         id: user.id,
         email: user.email,
         role: user.role,
-        profile: user._profile
+        profile: user._profile,
       },
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error getting logged user:", error)
+    console.error("Error getting logged user:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to get logged user",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-}
+};
 
-export const getUserProfile = async (
-  userId: string,
-  db: DBClient
-) => {
+export const getUserProfile = async (userId: string, db: DBClient) => {
   try {
     const profile = await db.query.ProfilesTable.findFirst({
-      where: (profiles, { eq }) => eq(profiles.userId, userId)
-    })
-    
+      where: (profiles, { eq }) => eq(profiles.userId, userId),
+    });
+
     if (!profile) {
       return {
         data: null,
         error: {
           code: "NOT_FOUND",
-          message: "Profile not found"
-        }
-      }
+          message: "Profile not found",
+        },
+      };
     }
-    
+
     return {
       data: profile,
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error getting user profile:", error)
+    console.error("Error getting user profile:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to get user profile",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-}
+};
 
 export const updateUserProfile = async (
   userId: string,
   input: UpdateUserProfileInput,
-  db: DBClient
+  db: DBClient,
 ) => {
   try {
     // Verificar se o perfil existe
     const existingProfile = await db.query.ProfilesTable.findFirst({
-      where: (profiles, { eq }) => eq(profiles.userId, userId)
-    })
-    
+      where: (profiles, { eq }) => eq(profiles.userId, userId),
+    });
+
     if (!existingProfile) {
       return {
         data: null,
         error: {
           code: "NOT_FOUND",
-          message: "Profile not found"
-        }
-      }
+          message: "Profile not found",
+        },
+      };
     }
-    
+
     // Atualizar o nome completo baseado no primeiro e último nome
-    const fullName = `${input.firstName} ${input.lastName}`
-    
+    const fullName = `${input.firstName} ${input.lastName}`;
+
     // Atualizar o perfil
     const [updatedProfile] = await db
       .update(ProfilesTable)
@@ -359,100 +358,101 @@ export const updateUserProfile = async (
         state: input.state,
         zipCode: input.zipCode,
         country: input.country,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(ProfilesTable.userId, userId))
-      .returning()
-    
+      .returning();
+
     return {
       data: updatedProfile,
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error updating user profile:", error)
+    console.error("Error updating user profile:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to update user profile",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-}
+};
 
 export const deleteUserAccount = async (
   userId: string,
   input: DeleteUserAccountInput,
   db: DBClient,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
 ) => {
   try {
     // Buscar usuário para verificar se existe
     const user = await db.query.UsersTable.findFirst({
-      where: (users, { eq }) => eq(users.id, userId)
-    })
-    
+      where: (users, { eq }) => eq(users.id, userId),
+    });
+
     if (!user) {
       return {
         data: null,
         error: {
           code: "NOT_FOUND",
-          message: "User not found"
-        }
-      }
+          message: "User not found",
+        },
+      };
     }
-    
+
     // Verificar senha com Supabase
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password: input.password
-    })
-    
+    const { data: authData, error: authError } =
+      await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: input.password,
+      });
+
     if (authError || !authData.session) {
       return {
         data: null,
         error: {
           code: "UNAUTHORIZED",
           message: "Invalid password",
-          cause: authError
-        }
-      }
+          cause: authError,
+        },
+      };
     }
-    
+
     // Excluir o usuário no Supabase
     const { error: deleteSupabaseError } = await supabase.auth.admin.deleteUser(
-      authData.user.id
-    )
-    
+      authData.user.id,
+    );
+
     if (deleteSupabaseError) {
       return {
         data: null,
         error: {
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to delete user in Supabase",
-          cause: deleteSupabaseError
-        }
-      }
+          cause: deleteSupabaseError,
+        },
+      };
     }
-    
+
     // Excluir o usuário no banco de dados
     // Nota: A exclusão em cascata deve excluir automaticamente o perfil
-    await db.delete(UsersTable).where(eq(UsersTable.id, userId))
-    
+    await db.delete(UsersTable).where(eq(UsersTable.id, userId));
+
     return {
       data: { success: true },
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error deleting user account:", error)
+    console.error("Error deleting user account:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to delete user account",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-} 
+};

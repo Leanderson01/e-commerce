@@ -2,4 +2,4 @@
 export * from "./order.table";
 
 // Export order item components
-export * from "./order-item.table"; 
+export * from "./order-item.table";

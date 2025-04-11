@@ -1,2 +1,2 @@
 // Export category components
-export * from "./category.table"; 
+export * from "./category.table";

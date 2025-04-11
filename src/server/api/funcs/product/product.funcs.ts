@@ -1,9 +1,9 @@
-import { type SupabaseClient } from "@supabase/supabase-js"
-import type { DBClient } from "~/server/db/src/client"
-import { ProductsTable } from "~/server/db/src/schema/product"
-import { v7 as uuidv7 } from "uuid"
-import { eq, gt, and, desc, asc, sql } from "drizzle-orm"
-import type { 
+import { type SupabaseClient } from "@supabase/supabase-js";
+import type { DBClient } from "~/server/db/src/client";
+import { ProductsTable } from "~/server/db/src/schema/product";
+import { v7 as uuidv7 } from "uuid";
+import { eq, gt, and, desc, asc, sql } from "drizzle-orm";
+import type {
   GetProductsInput,
   GetProductByIdInput,
   GetProductsByCategoryInput,
@@ -11,154 +11,151 @@ import type {
   UpdateProductInput,
   UpdateProductStockInput,
   DeleteProductInput,
-  UploadProductImageInput
-} from "./product.types"
+  UploadProductImageInput,
+} from "./product.types";
 
 // Listar produtos disponíveis
-export const getProducts = async (
-  input: GetProductsInput,
-  db: DBClient
-) => {
+export const getProducts = async (input: GetProductsInput, db: DBClient) => {
   try {
     // Construir o filtro
-    let filter = undefined
-    
+    let filter = undefined;
+
     if (input.inStock) {
-      filter = gt(ProductsTable.stockQuantity, 0)
+      filter = gt(ProductsTable.stockQuantity, 0);
     }
-    
+
     // Buscar produtos com paginação
     const products = await db.query.ProductsTable.findMany({
       where: filter,
       with: {
-        _category: true
+        _category: true,
       },
       limit: input.limit,
       offset: input.offset,
-      orderBy: [desc(ProductsTable.updatedAt)]
-    })
-    
+      orderBy: [desc(ProductsTable.updatedAt)],
+    });
+
     // Contar o total de produtos
     const countResult = await db
       .select({ count: sql<number>`count(*)` })
       .from(ProductsTable)
-      .where(filter ?? undefined)
-    
-    const total = countResult[0]?.count ?? 0
-    
+      .where(filter ?? undefined);
+
+    const total = countResult[0]?.count ?? 0;
+
     return {
       data: {
         products,
         pagination: {
           total,
           limit: input.limit,
-          offset: input.offset
-        }
+          offset: input.offset,
+        },
       },
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error getting products:", error)
+    console.error("Error getting products:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Falha ao buscar produtos",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-}
+};
 
 // Obter detalhes de um produto
 export const getProductById = async (
   input: GetProductByIdInput,
-  db: DBClient
+  db: DBClient,
 ) => {
   try {
     const product = await db.query.ProductsTable.findFirst({
       where: (products, { eq }) => eq(products.id, input.id),
       with: {
-        _category: true
-      }
-    })
-    
+        _category: true,
+      },
+    });
+
     if (!product) {
       return {
         data: null,
         error: {
           code: "NOT_FOUND",
-          message: "Produto não encontrado"
-        }
-      }
+          message: "Produto não encontrado",
+        },
+      };
     }
-    
+
     return {
       data: product,
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error getting product:", error)
+    console.error("Error getting product:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Falha ao buscar o produto",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-}
+};
 
 // Listar produtos por categoria
 export const getProductsByCategory = async (
   input: GetProductsByCategoryInput,
-  db: DBClient
+  db: DBClient,
 ) => {
   try {
     // Verificar se a categoria existe
     const category = await db.query.CategoriesTable.findFirst({
-      where: (categories, { eq }) => eq(categories.id, input.categoryId)
-    })
-    
+      where: (categories, { eq }) => eq(categories.id, input.categoryId),
+    });
+
     if (!category) {
       return {
         data: null,
         error: {
           code: "NOT_FOUND",
-          message: "Categoria não encontrada"
-        }
-      }
+          message: "Categoria não encontrada",
+        },
+      };
     }
-    
+
     // Construir o filtro
-    const conditions = [eq(ProductsTable.categoryId, input.categoryId)]
-    
+    const conditions = [eq(ProductsTable.categoryId, input.categoryId)];
+
     if (input.inStock) {
-      conditions.push(gt(ProductsTable.stockQuantity, 0))
+      conditions.push(gt(ProductsTable.stockQuantity, 0));
     }
-    
-    const filter = and(...conditions)
-    
+
+    const filter = and(...conditions);
+
     // Buscar produtos com paginação
     const products = await db.query.ProductsTable.findMany({
       where: filter,
       with: {
-        _category: true
+        _category: true,
       },
       limit: input.limit,
       offset: input.offset,
-      orderBy: [asc(ProductsTable.name)]
-    })
-    
+      orderBy: [asc(ProductsTable.name)],
+    });
+
     // Contar o total de produtos
     const countResult = await db
       .select({ count: sql<number>`count(*)` })
       .from(ProductsTable)
-      .where(filter)
-    
-    const total = countResult[0]?.count ?? 0
-    
+      .where(filter);
+
+    const total = countResult[0]?.count ?? 0;
+
     return {
       data: {
         category,
@@ -166,50 +163,50 @@ export const getProductsByCategory = async (
         pagination: {
           total,
           limit: input.limit,
-          offset: input.offset
-        }
+          offset: input.offset,
+        },
       },
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error getting products by category:", error)
+    console.error("Error getting products by category:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Falha ao buscar produtos por categoria",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-}
+};
 
 // Criar um novo produto
 export const createProduct = async (
   input: CreateProductInput,
-  db: DBClient
+  db: DBClient,
 ) => {
   try {
     // Verificar se a categoria existe se categoryId foi fornecido
     if (input.categoryId) {
       const category = await db.query.CategoriesTable.findFirst({
-        where: (categories, { eq }) => eq(categories.id, input.categoryId!)
-      })
-      
+        where: (categories, { eq }) => eq(categories.id, input.categoryId!),
+      });
+
       if (!category) {
         return {
           data: null,
           error: {
             code: "NOT_FOUND",
-            message: "Categoria não encontrada"
-          }
-        }
+            message: "Categoria não encontrada",
+          },
+        };
       }
     }
-    
+
     // Criar o produto
-    const productId = uuidv7()
-    
+    const productId = uuidv7();
+
     const [newProduct] = await db
       .insert(ProductsTable)
       .values({
@@ -219,294 +216,292 @@ export const createProduct = async (
         price: String(input.price), // Converter para string para compatibilidade com o tipo numeric
         stockQuantity: input.stockQuantity,
         categoryId: input.categoryId ?? null,
-        imageUrl: input.imageUrl ?? null
+        imageUrl: input.imageUrl ?? null,
       })
-      .returning()
-    
+      .returning();
+
     return {
       data: newProduct,
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error creating product:", error)
+    console.error("Error creating product:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Falha ao criar o produto",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-}
+};
 
 // Atualizar dados do produto
 export const updateProduct = async (
   input: UpdateProductInput,
-  db: DBClient
+  db: DBClient,
 ) => {
   try {
     // Verificar se o produto existe
     const existingProduct = await db.query.ProductsTable.findFirst({
-      where: (products, { eq }) => eq(products.id, input.id)
-    })
-    
+      where: (products, { eq }) => eq(products.id, input.id),
+    });
+
     if (!existingProduct) {
       return {
         data: null,
         error: {
           code: "NOT_FOUND",
-          message: "Produto não encontrado"
-        }
-      }
+          message: "Produto não encontrado",
+        },
+      };
     }
-    
+
     // Verificar se a categoria existe se categoryId foi fornecido
     if (input.categoryId) {
       const category = await db.query.CategoriesTable.findFirst({
-        where: (categories, { eq }) => eq(categories.id, input.categoryId!)
-      })
-      
+        where: (categories, { eq }) => eq(categories.id, input.categoryId!),
+      });
+
       if (!category) {
         return {
           data: null,
           error: {
             code: "NOT_FOUND",
-            message: "Categoria não encontrada"
-          }
-        }
+            message: "Categoria não encontrada",
+          },
+        };
       }
     }
-    
+
     // Preparar dados para atualização
     const updateData: Record<string, unknown> = {
-      updatedAt: new Date()
-    }
-    
-    if (input.name !== undefined) updateData.name = input.name
-    if (input.description !== undefined) updateData.description = input.description
-    if (input.price !== undefined) updateData.price = String(input.price) // Converter para string
-    if (input.categoryId !== undefined) updateData.categoryId = input.categoryId
-    if (input.imageUrl !== undefined) updateData.imageUrl = input.imageUrl
-    
+      updatedAt: new Date(),
+    };
+
+    if (input.name !== undefined) updateData.name = input.name;
+    if (input.description !== undefined)
+      updateData.description = input.description;
+    if (input.price !== undefined) updateData.price = String(input.price); // Converter para string
+    if (input.categoryId !== undefined)
+      updateData.categoryId = input.categoryId;
+    if (input.imageUrl !== undefined) updateData.imageUrl = input.imageUrl;
+
     // Atualizar o produto
     const [updatedProduct] = await db
       .update(ProductsTable)
       .set(updateData)
       .where(eq(ProductsTable.id, input.id))
-      .returning()
-    
+      .returning();
+
     return {
       data: updatedProduct,
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error updating product:", error)
+    console.error("Error updating product:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Falha ao atualizar o produto",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-}
+};
 
 // Atualizar estoque do produto
 export const updateProductStock = async (
   input: UpdateProductStockInput,
-  db: DBClient
+  db: DBClient,
 ) => {
   try {
     // Verificar se o produto existe
     const existingProduct = await db.query.ProductsTable.findFirst({
-      where: (products, { eq }) => eq(products.id, input.id)
-    })
-    
+      where: (products, { eq }) => eq(products.id, input.id),
+    });
+
     if (!existingProduct) {
       return {
         data: null,
         error: {
           code: "NOT_FOUND",
-          message: "Produto não encontrado"
-        }
-      }
+          message: "Produto não encontrado",
+        },
+      };
     }
-    
+
     // Atualizar o estoque
     const [updatedProduct] = await db
       .update(ProductsTable)
       .set({
         stockQuantity: input.stockQuantity,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(ProductsTable.id, input.id))
-      .returning()
-    
+      .returning();
+
     return {
       data: updatedProduct,
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error updating product stock:", error)
+    console.error("Error updating product stock:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Falha ao atualizar o estoque do produto",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-}
+};
 
 // Excluir produto
 export const deleteProduct = async (
   input: DeleteProductInput,
-  db: DBClient
+  db: DBClient,
 ) => {
   try {
     // Verificar se o produto existe
     const existingProduct = await db.query.ProductsTable.findFirst({
-      where: (products, { eq }) => eq(products.id, input.id)
-    })
-    
+      where: (products, { eq }) => eq(products.id, input.id),
+    });
+
     if (!existingProduct) {
       return {
         data: null,
         error: {
           code: "NOT_FOUND",
-          message: "Produto não encontrado"
-        }
-      }
+          message: "Produto não encontrado",
+        },
+      };
     }
-    
+
     // Excluir o produto
-    await db
-      .delete(ProductsTable)
-      .where(eq(ProductsTable.id, input.id))
-    
+    await db.delete(ProductsTable).where(eq(ProductsTable.id, input.id));
+
     return {
       data: { success: true },
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error deleting product:", error)
+    console.error("Error deleting product:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Falha ao excluir o produto",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-}
+};
 
 // Upload de imagem de produto
 export const uploadProductImage = async (
   input: UploadProductImageInput,
   db: DBClient,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
 ) => {
   try {
     // Verificar se o produto existe
     const existingProduct = await db.query.ProductsTable.findFirst({
-      where: (products, { eq }) => eq(products.id, input.id)
-    })
-    
+      where: (products, { eq }) => eq(products.id, input.id),
+    });
+
     if (!existingProduct) {
       return {
         data: null,
         error: {
           code: "NOT_FOUND",
-          message: "Produto não encontrado"
-        }
-      }
+          message: "Produto não encontrado",
+        },
+      };
     }
-    
+
     // Validar base64
-    const isBase64 = /^data:image\/[a-z]+;base64,/.test(input.imageData)
+    const isBase64 = /^data:image\/[a-z]+;base64,/.test(input.imageData);
     if (!isBase64) {
       return {
         data: null,
         error: {
           code: "BAD_REQUEST",
-          message: "Formato inválido. É esperado uma string em base64"
-        }
-      }
+          message: "Formato inválido. É esperado uma string em base64",
+        },
+      };
     }
-    
+
     // Extrair os dados da base64
-    const base64Data = input.imageData.split(',')[1]
-    
+    const base64Data = input.imageData.split(",")[1];
+
     if (!base64Data) {
       return {
         data: null,
         error: {
           code: "BAD_REQUEST",
-          message: "Dados da imagem inválidos"
-        }
-      }
+          message: "Dados da imagem inválidos",
+        },
+      };
     }
-    
+
     // Nome do arquivo único
-    const fileExtension = input.filename.split('.').pop() ?? 'png'
-    const fileName = `${input.id}-${Date.now()}.${fileExtension}`
-    const filePath = `products/${fileName}`
-    
+    const fileExtension = input.filename.split(".").pop() ?? "png";
+    const fileName = `${input.id}-${Date.now()}.${fileExtension}`;
+    const filePath = `products/${fileName}`;
+
     // Upload para o Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase
-      .storage
-      .from('product-images')
-      .upload(filePath, Buffer.from(base64Data, 'base64'), {
-        contentType: `image/${fileExtension}`
-      })
-    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("product-images")
+      .upload(filePath, Buffer.from(base64Data, "base64"), {
+        contentType: `image/${fileExtension}`,
+      });
+
     if (uploadError || !uploadData) {
       return {
         data: null,
         error: {
           code: "INTERNAL_SERVER_ERROR",
           message: "Falha ao fazer upload da imagem",
-          cause: uploadError
-        }
-      }
+          cause: uploadError,
+        },
+      };
     }
-    
+
     // Obter URL pública da imagem usando o caminho do arquivo carregado
-    const { data: publicUrl } = supabase
-      .storage
-      .from('product-images')
-      .getPublicUrl(uploadData.path || filePath)
-    
+    const { data: publicUrl } = supabase.storage
+      .from("product-images")
+      .getPublicUrl(uploadData.path || filePath);
+
     // Atualizar o produto com a URL da imagem
     const [updatedProduct] = await db
       .update(ProductsTable)
       .set({
         imageUrl: publicUrl.publicUrl,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(ProductsTable.id, input.id))
-      .returning()
-    
+      .returning();
+
     return {
       data: {
         product: updatedProduct,
-        imageUrl: publicUrl.publicUrl
+        imageUrl: publicUrl.publicUrl,
       },
-      error: null
-    }
+      error: null,
+    };
   } catch (error) {
-    console.error("Error uploading product image:", error)
+    console.error("Error uploading product image:", error);
     return {
       data: null,
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Falha ao fazer upload da imagem do produto",
-        cause: error
-      }
-    }
+        cause: error,
+      },
+    };
   }
-} 
+};

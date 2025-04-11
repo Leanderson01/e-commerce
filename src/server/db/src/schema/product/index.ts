@@ -1,2 +1,2 @@
 // Export product components
-export * from "./product.table"; 
+export * from "./product.table";

@@ -1,21 +1,15 @@
-import { relations } from "drizzle-orm"
-import {
-  numeric,
-  pgEnum,
-  pgTable,
-  timestamp,
-  uuid
-} from "drizzle-orm/pg-core"
+import { relations } from "drizzle-orm";
+import { numeric, pgEnum, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
 import {
   createInsertSchema,
   createSelectSchema,
-  createUpdateSchema
-} from "drizzle-zod"
-import { v7 as uuidv7 } from "uuid"
-import type { z } from "zod"
-import { UsersTable } from "../user/user.table"
-import { SalesTable } from "../sale/sale.table"
-import { OrderItemsTable } from "./order-item.table"
+  createUpdateSchema,
+} from "drizzle-zod";
+import { v7 as uuidv7 } from "uuid";
+import type { z } from "zod";
+import { UsersTable } from "../user/user.table";
+import { SalesTable } from "../sale/sale.table";
+import { OrderItemsTable } from "./order-item.table";
 
 /**
  * Order Status Enum
@@ -26,12 +20,12 @@ export const ORDER_STATUSES = [
   "processing",
   "shipped",
   "delivered",
-  "cancelled"
-] as const
+  "cancelled",
+] as const;
 
-export type OrderStatus = (typeof ORDER_STATUSES)[number]
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
-export const OrderStatusEnum = pgEnum("order_status", ORDER_STATUSES)
+export const OrderStatusEnum = pgEnum("order_status", ORDER_STATUSES);
 
 /**
  * Orders Table
@@ -52,36 +46,36 @@ export const OrdersTable = pgTable("orders", {
     .notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
-    .notNull()
-})
+    .notNull(),
+});
 
 // Relationships
 export const OrdersRelations = relations(OrdersTable, ({ one, many }) => ({
   _user: one(UsersTable, {
     fields: [OrdersTable.userId],
-    references: [UsersTable.id]
+    references: [UsersTable.id],
   }),
   _items: many(OrderItemsTable),
   _sale: one(SalesTable, {
     fields: [OrdersTable.id],
-    references: [SalesTable.orderId]
-  })
-}))
+    references: [SalesTable.orderId],
+  }),
+}));
 
 // Schemas
-export const ordersInsertSchema = createInsertSchema(OrdersTable)
-export const ordersSelectSchema = createSelectSchema(OrdersTable)
-export const ordersUpdateSchema = createUpdateSchema(OrdersTable)
+export const ordersInsertSchema = createInsertSchema(OrdersTable);
+export const ordersSelectSchema = createSelectSchema(OrdersTable);
+export const ordersUpdateSchema = createUpdateSchema(OrdersTable);
 
 export const orderSchema = {
   insert: ordersInsertSchema,
   select: ordersSelectSchema,
-  update: ordersUpdateSchema
-}
+  update: ordersUpdateSchema,
+};
 
 // Types
-export type Order = typeof OrdersTable.$inferSelect
-export type NewOrder = typeof OrdersTable.$inferInsert
-export type OrderInsert = z.infer<typeof ordersInsertSchema>
-export type OrderSelect = z.infer<typeof ordersSelectSchema>
-export type OrderUpdate = z.infer<typeof ordersUpdateSchema> 
+export type Order = typeof OrdersTable.$inferSelect;
+export type NewOrder = typeof OrdersTable.$inferInsert;
+export type OrderInsert = z.infer<typeof ordersInsertSchema>;
+export type OrderSelect = z.infer<typeof ordersSelectSchema>;
+export type OrderUpdate = z.infer<typeof ordersUpdateSchema>;

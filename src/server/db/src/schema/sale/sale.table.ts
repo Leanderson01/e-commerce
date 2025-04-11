@@ -1,21 +1,21 @@
-import { relations } from "drizzle-orm"
+import { relations } from "drizzle-orm";
 import {
   numeric,
   pgEnum,
   pgTable,
   text,
   timestamp,
-  uuid
-} from "drizzle-orm/pg-core"
+  uuid,
+} from "drizzle-orm/pg-core";
 import {
   createInsertSchema,
   createSelectSchema,
-  createUpdateSchema
-} from "drizzle-zod"
-import { v7 as uuidv7 } from "uuid"
-import type { z } from "zod"
-import { UsersTable } from "../user/user.table"
-import { OrdersTable } from "../order/order.table"
+  createUpdateSchema,
+} from "drizzle-zod";
+import { v7 as uuidv7 } from "uuid";
+import type { z } from "zod";
+import { UsersTable } from "../user/user.table";
+import { OrdersTable } from "../order/order.table";
 
 /**
  * Payment Methods Enum
@@ -26,27 +26,22 @@ export const PAYMENT_METHODS = [
   "debit_card",
   "bank_transfer",
   "pix",
-  "cash"
-] as const
+  "cash",
+] as const;
 
-export type PaymentMethod = (typeof PAYMENT_METHODS)[number]
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
-export const PaymentMethodEnum = pgEnum("payment_method", PAYMENT_METHODS)
+export const PaymentMethodEnum = pgEnum("payment_method", PAYMENT_METHODS);
 
 /**
  * Sale Status Enum
  * Used to track the status of a sale
  */
-export const SALE_STATUSES = [
-  "pending",
-  "paid",
-  "refunded",
-  "failed"
-] as const
+export const SALE_STATUSES = ["pending", "paid", "refunded", "failed"] as const;
 
-export type SaleStatus = (typeof SALE_STATUSES)[number]
+export type SaleStatus = (typeof SALE_STATUSES)[number];
 
-export const SaleStatusEnum = pgEnum("sale_status", SALE_STATUSES)
+export const SaleStatusEnum = pgEnum("sale_status", SALE_STATUSES);
 
 /**
  * Sales Table
@@ -56,7 +51,9 @@ export const SalesTable = pgTable("sales", {
   id: uuid("id")
     .primaryKey()
     .$defaultFn(() => uuidv7()),
-  orderId: uuid("order_id").references(() => OrdersTable.id, { onDelete: "cascade" }),
+  orderId: uuid("order_id").references(() => OrdersTable.id, {
+    onDelete: "cascade",
+  }),
   userId: uuid("user_id").references(() => UsersTable.id),
   paymentMethod: PaymentMethodEnum("payment_method").default("credit_card"),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
@@ -70,35 +67,35 @@ export const SalesTable = pgTable("sales", {
     .notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
-    .notNull()
-})
+    .notNull(),
+});
 
 // Relationships
 export const SalesRelations = relations(SalesTable, ({ one }) => ({
   _order: one(OrdersTable, {
     fields: [SalesTable.orderId],
-    references: [OrdersTable.id]
+    references: [OrdersTable.id],
   }),
   _user: one(UsersTable, {
     fields: [SalesTable.userId],
-    references: [UsersTable.id]
-  })
-}))
+    references: [UsersTable.id],
+  }),
+}));
 
 // Schemas
-export const salesInsertSchema = createInsertSchema(SalesTable)
-export const salesSelectSchema = createSelectSchema(SalesTable)
-export const salesUpdateSchema = createUpdateSchema(SalesTable)
+export const salesInsertSchema = createInsertSchema(SalesTable);
+export const salesSelectSchema = createSelectSchema(SalesTable);
+export const salesUpdateSchema = createUpdateSchema(SalesTable);
 
 export const saleSchema = {
   insert: salesInsertSchema,
   select: salesSelectSchema,
-  update: salesUpdateSchema
-}
+  update: salesUpdateSchema,
+};
 
 // Types
-export type Sale = typeof SalesTable.$inferSelect
-export type NewSale = typeof SalesTable.$inferInsert
-export type SaleInsert = z.infer<typeof salesInsertSchema>
-export type SaleSelect = z.infer<typeof salesSelectSchema>
-export type SaleUpdate = z.infer<typeof salesUpdateSchema> 
+export type Sale = typeof SalesTable.$inferSelect;
+export type NewSale = typeof SalesTable.$inferInsert;
+export type SaleInsert = z.infer<typeof salesInsertSchema>;
+export type SaleSelect = z.infer<typeof salesSelectSchema>;
+export type SaleUpdate = z.infer<typeof salesUpdateSchema>;

@@ -2,4 +2,4 @@
 export * from "./user.table";
 
 // Export profile components
-export * from "./profile.table"; 
+export * from "./profile.table";

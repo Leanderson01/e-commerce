@@ -1,18 +1,13 @@
-import { relations } from "drizzle-orm"
-import {
-  pgTable,
-  text,
-  timestamp,
-  uuid
-} from "drizzle-orm/pg-core"
+import { relations } from "drizzle-orm";
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import {
   createInsertSchema,
   createSelectSchema,
-  createUpdateSchema
-} from "drizzle-zod"
-import { v7 as uuidv7 } from "uuid"
-import type { z } from "zod"
-import { ProductsTable } from "../product/product.table"
+  createUpdateSchema,
+} from "drizzle-zod";
+import { v7 as uuidv7 } from "uuid";
+import type { z } from "zod";
+import { ProductsTable } from "../product/product.table";
 
 /**
  * Categories Table
@@ -29,28 +24,28 @@ export const CategoriesTable = pgTable("categories", {
     .notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
-    .notNull()
-})
+    .notNull(),
+});
 
 // Relationships
 export const CategoriesRelations = relations(CategoriesTable, ({ many }) => ({
-  _products: many(ProductsTable)
-}))
+  _products: many(ProductsTable),
+}));
 
 // Schemas
-export const categoriesInsertSchema = createInsertSchema(CategoriesTable)
-export const categoriesSelectSchema = createSelectSchema(CategoriesTable)
-export const categoriesUpdateSchema = createUpdateSchema(CategoriesTable)
+export const categoriesInsertSchema = createInsertSchema(CategoriesTable);
+export const categoriesSelectSchema = createSelectSchema(CategoriesTable);
+export const categoriesUpdateSchema = createUpdateSchema(CategoriesTable);
 
 export const categorySchema = {
   insert: categoriesInsertSchema,
   select: categoriesSelectSchema,
-  update: categoriesUpdateSchema
-}
+  update: categoriesUpdateSchema,
+};
 
 // Types
-export type Category = typeof CategoriesTable.$inferSelect
-export type NewCategory = typeof CategoriesTable.$inferInsert
-export type CategoryInsert = z.infer<typeof categoriesInsertSchema>
-export type CategorySelect = z.infer<typeof categoriesSelectSchema>
-export type CategoryUpdate = z.infer<typeof categoriesUpdateSchema> 
+export type Category = typeof CategoriesTable.$inferSelect;
+export type NewCategory = typeof CategoriesTable.$inferInsert;
+export type CategoryInsert = z.infer<typeof categoriesInsertSchema>;
+export type CategorySelect = z.infer<typeof categoriesSelectSchema>;
+export type CategoryUpdate = z.infer<typeof categoriesUpdateSchema>;

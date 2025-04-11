@@ -1,30 +1,30 @@
-import { relations } from "drizzle-orm"
+import { relations } from "drizzle-orm";
 import {
   boolean,
   pgEnum,
   pgTable,
   text,
   timestamp,
-  uuid
-} from "drizzle-orm/pg-core"
+  uuid,
+} from "drizzle-orm/pg-core";
 import {
   createInsertSchema,
   createSelectSchema,
-  createUpdateSchema
-} from "drizzle-zod"
-import { v7 as uuidv7 } from "uuid"
-import type { z } from "zod"
-import { ProfilesTable } from "./profile.table"
+  createUpdateSchema,
+} from "drizzle-zod";
+import { v7 as uuidv7 } from "uuid";
+import type { z } from "zod";
+import { ProfilesTable } from "./profile.table";
 
 /**
  * User Roles Enum
  * Used to differentiate between admin and client users
  */
-export const USER_ROLES = ["admin", "client"] as const
+export const USER_ROLES = ["admin", "client"] as const;
 
-export type UserRole = (typeof USER_ROLES)[number]
+export type UserRole = (typeof USER_ROLES)[number];
 
-export const UserRoleEnum = pgEnum("user_role", USER_ROLES)
+export const UserRoleEnum = pgEnum("user_role", USER_ROLES);
 
 /**
  * Users Table
@@ -44,33 +44,30 @@ export const UsersTable = pgTable("users", {
     .notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
-    .notNull()
-})
+    .notNull(),
+});
 
-export const UsersRelations = relations(
-  UsersTable,
-  ({ one }) => ({
-    _profile: one(ProfilesTable, {
-      fields: [UsersTable.id],
-      references: [ProfilesTable.userId]
-    })
-  })
-)
+export const UsersRelations = relations(UsersTable, ({ one }) => ({
+  _profile: one(ProfilesTable, {
+    fields: [UsersTable.id],
+    references: [ProfilesTable.userId],
+  }),
+}));
 
 // Schemas
-export const usersInsertSchema = createInsertSchema(UsersTable)
-export const usersSelectSchema = createSelectSchema(UsersTable)
-export const usersUpdateSchema = createUpdateSchema(UsersTable)
+export const usersInsertSchema = createInsertSchema(UsersTable);
+export const usersSelectSchema = createSelectSchema(UsersTable);
+export const usersUpdateSchema = createUpdateSchema(UsersTable);
 
 export const userSchema = {
   insert: usersInsertSchema,
   select: usersSelectSchema,
-  update: usersUpdateSchema
-}
+  update: usersUpdateSchema,
+};
 
 // Types
-export type User = typeof UsersTable.$inferSelect
-export type NewUser = typeof UsersTable.$inferInsert
-export type UserInsert = z.infer<typeof usersInsertSchema>
-export type UserSelect = z.infer<typeof usersSelectSchema>
-export type UserUpdate = z.infer<typeof usersUpdateSchema> 
+export type User = typeof UsersTable.$inferSelect;
+export type NewUser = typeof UsersTable.$inferInsert;
+export type UserInsert = z.infer<typeof usersInsertSchema>;
+export type UserSelect = z.infer<typeof usersSelectSchema>;
+export type UserUpdate = z.infer<typeof usersUpdateSchema>;
