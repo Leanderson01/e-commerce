@@ -2,7 +2,8 @@ import { type SupabaseClient } from "@supabase/supabase-js"
 import type { DBClient } from "~/server/db/src/client"
 import { ProfilesTable, UsersTable } from "~/server/db/src/schema/user"
 import { v7 as uuidv7 } from "uuid"
-import type { LoginInput, SignupInput } from "./auth.types"
+import type { LoginInput, SignupInput, UpdateUserProfileInput, DeleteUserAccountInput } from "./auth.types"
+import { eq } from "drizzle-orm"
 
 export const login = async (
   input: LoginInput,
@@ -211,6 +212,245 @@ export const logout = async (supabase: SupabaseClient) => {
       error: {
         code: "INTERNAL_SERVER_ERROR",
         message: "Failed to logout",
+        cause: error
+      }
+    }
+  }
+}
+
+export const getUserLogged = async (
+  db: DBClient,
+  supabase: SupabaseClient
+) => {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession()
+    
+    if (!sessionData.session) {
+      return {
+        data: null,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "No active session found"
+        }
+      }
+    }
+    
+    const userEmail = sessionData.session.user.email
+    
+    if (!userEmail) {
+      return {
+        data: null,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "User email not found in session"
+        }
+      }
+    }
+    
+    const user = await db.query.UsersTable.findFirst({
+      where: (users, { eq }) => eq(users.email, userEmail),
+      with: {
+        _profile: true
+      }
+    })
+    
+    if (!user) {
+      return {
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "User not found in database"
+        }
+      }
+    }
+    
+    return {
+      data: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        profile: user._profile
+      },
+      error: null
+    }
+  } catch (error) {
+    console.error("Error getting logged user:", error)
+    return {
+      data: null,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to get logged user",
+        cause: error
+      }
+    }
+  }
+}
+
+export const getUserProfile = async (
+  userId: string,
+  db: DBClient
+) => {
+  try {
+    const profile = await db.query.ProfilesTable.findFirst({
+      where: (profiles, { eq }) => eq(profiles.userId, userId)
+    })
+    
+    if (!profile) {
+      return {
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "Profile not found"
+        }
+      }
+    }
+    
+    return {
+      data: profile,
+      error: null
+    }
+  } catch (error) {
+    console.error("Error getting user profile:", error)
+    return {
+      data: null,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to get user profile",
+        cause: error
+      }
+    }
+  }
+}
+
+export const updateUserProfile = async (
+  userId: string,
+  input: UpdateUserProfileInput,
+  db: DBClient
+) => {
+  try {
+    // Verificar se o perfil existe
+    const existingProfile = await db.query.ProfilesTable.findFirst({
+      where: (profiles, { eq }) => eq(profiles.userId, userId)
+    })
+    
+    if (!existingProfile) {
+      return {
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "Profile not found"
+        }
+      }
+    }
+    
+    // Atualizar o nome completo baseado no primeiro e último nome
+    const fullName = `${input.firstName} ${input.lastName}`
+    
+    // Atualizar o perfil
+    const [updatedProfile] = await db
+      .update(ProfilesTable)
+      .set({
+        firstName: input.firstName,
+        lastName: input.lastName,
+        fullName,
+        phone: input.phone,
+        address: input.address,
+        city: input.city,
+        state: input.state,
+        zipCode: input.zipCode,
+        country: input.country,
+        updatedAt: new Date()
+      })
+      .where(eq(ProfilesTable.userId, userId))
+      .returning()
+    
+    return {
+      data: updatedProfile,
+      error: null
+    }
+  } catch (error) {
+    console.error("Error updating user profile:", error)
+    return {
+      data: null,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to update user profile",
+        cause: error
+      }
+    }
+  }
+}
+
+export const deleteUserAccount = async (
+  userId: string,
+  input: DeleteUserAccountInput,
+  db: DBClient,
+  supabase: SupabaseClient
+) => {
+  try {
+    // Buscar usuário para verificar se existe
+    const user = await db.query.UsersTable.findFirst({
+      where: (users, { eq }) => eq(users.id, userId)
+    })
+    
+    if (!user) {
+      return {
+        data: null,
+        error: {
+          code: "NOT_FOUND",
+          message: "User not found"
+        }
+      }
+    }
+    
+    // Verificar senha com Supabase
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: input.password
+    })
+    
+    if (authError || !authData.session) {
+      return {
+        data: null,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "Invalid password",
+          cause: authError
+        }
+      }
+    }
+    
+    // Excluir o usuário no Supabase
+    const { error: deleteSupabaseError } = await supabase.auth.admin.deleteUser(
+      authData.user.id
+    )
+    
+    if (deleteSupabaseError) {
+      return {
+        data: null,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to delete user in Supabase",
+          cause: deleteSupabaseError
+        }
+      }
+    }
+    
+    // Excluir o usuário no banco de dados
+    // Nota: A exclusão em cascata deve excluir automaticamente o perfil
+    await db.delete(UsersTable).where(eq(UsersTable.id, userId))
+    
+    return {
+      data: { success: true },
+      error: null
+    }
+  } catch (error) {
+    console.error("Error deleting user account:", error)
+    return {
+      data: null,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to delete user account",
         cause: error
       }
     }
