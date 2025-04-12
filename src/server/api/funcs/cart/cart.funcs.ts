@@ -10,6 +10,7 @@ import type {
   RemoveFromCartInput,
   ClearCartInput,
 } from "./cart.types";
+import { TRPCError } from "@trpc/server";
 
 // Função auxiliar para obter ou criar um carrinho
 const getOrCreateCart = async (userId: string, db: DBClient) => {
@@ -41,7 +42,10 @@ const getOrCreateCart = async (userId: string, db: DBClient) => {
         _items: [],
       };
     } else {
-      throw new Error("Falha ao criar carrinho");
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Falha ao criar carrinho",
+      });
     }
   }
 
@@ -52,7 +56,7 @@ const getOrCreateCart = async (userId: string, db: DBClient) => {
 export const getCart = async (
   _input: GetCartInput,
   userId: string,
-  db: DBClient
+  db: DBClient,
 ) => {
   try {
     const cart = await getOrCreateCart(userId, db);
@@ -62,27 +66,24 @@ export const getCart = async (
     if (cart._items && cart._items.length > 0) {
       total = cart._items.reduce(
         (acc, item) => acc + Number(item.unitPrice) * item.quantity,
-        0
+        0,
       );
     }
 
     return {
-      data: {
-        ...cart,
-        total,
-      },
-      error: null,
+      ...cart,
+      total,
     };
   } catch (error) {
     console.error("Erro ao obter carrinho:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao obter o carrinho",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao obter o carrinho",
+      cause: error,
+    });
   }
 };
 
@@ -90,7 +91,7 @@ export const getCart = async (
 export const addToCart = async (
   input: AddToCartInput,
   userId: string,
-  db: DBClient
+  db: DBClient,
 ) => {
   try {
     // Verificar se o produto existe
@@ -99,28 +100,21 @@ export const addToCart = async (
     });
 
     if (!product) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Produto não encontrado",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Produto não encontrado",
+      });
     }
 
     // Verificar se o produto tem estoque suficiente
-    if (product?.stockQuantity != null && product.stockQuantity < input.quantity) {
-      return {
-        data: null,
-        error: {
-          code: "BAD_REQUEST",
-          message: "Quantidade insuficiente em estoque",
-          details: {
-            available: product.stockQuantity,
-            requested: input.quantity,
-          },
-        },
-      };
+    if (
+      product?.stockQuantity != null &&
+      product.stockQuantity < input.quantity
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Quantidade insuficiente em estoque",
+      });
     }
 
     // Obter ou criar carrinho
@@ -128,7 +122,7 @@ export const addToCart = async (
 
     // Verificar se o produto já está no carrinho
     const existingItem = cart._items.find(
-      (item) => item.productId === input.productId
+      (item) => item.productId === input.productId,
     );
 
     if (existingItem) {
@@ -136,20 +130,14 @@ export const addToCart = async (
       const newQuantity = existingItem.quantity + input.quantity;
 
       // Verificar novamente o estoque para a quantidade total
-      if (product?.stockQuantity != null && product.stockQuantity < newQuantity) {
-        return {
-          data: null,
-          error: {
-            code: "BAD_REQUEST",
-            message: "Quantidade insuficiente em estoque para o total solicitado",
-            details: {
-              available: product.stockQuantity,
-              currentInCart: existingItem.quantity,
-              requested: input.quantity,
-              total: newQuantity,
-            },
-          },
-        };
+      if (
+        product?.stockQuantity != null &&
+        product.stockQuantity < newQuantity
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Quantidade insuficiente em estoque para o total solicitado",
+        });
       }
 
       // Atualizar item existente
@@ -194,14 +182,14 @@ export const addToCart = async (
     }
   } catch (error) {
     console.error("Erro ao adicionar produto ao carrinho:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao adicionar produto ao carrinho",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao adicionar produto ao carrinho",
+      cause: error,
+    });
   }
 };
 
@@ -209,7 +197,7 @@ export const addToCart = async (
 export const updateCartItem = async (
   input: UpdateCartItemInput,
   userId: string,
-  db: DBClient
+  db: DBClient,
 ) => {
   try {
     // Verificar se o usuário tem um carrinho
@@ -221,13 +209,10 @@ export const updateCartItem = async (
     });
 
     if (!cart) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Carrinho não encontrado",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Carrinho não encontrado",
+      });
     }
 
     // Verificar se o item está no carrinho do usuário
@@ -240,28 +225,21 @@ export const updateCartItem = async (
     });
 
     if (!cartItem) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Item não encontrado no carrinho",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Item não encontrado no carrinho",
+      });
     }
 
     // Verificar estoque
-    if (cartItem._product?.stockQuantity != null && cartItem._product.stockQuantity < input.quantity) {
-      return {
-        data: null,
-        error: {
-          code: "BAD_REQUEST",
-          message: "Quantidade insuficiente em estoque",
-          details: {
-            available: cartItem._product.stockQuantity,
-            requested: input.quantity,
-          },
-        },
-      };
+    if (
+      cartItem._product?.stockQuantity != null &&
+      cartItem._product.stockQuantity < input.quantity
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Quantidade insuficiente em estoque",
+      });
     }
 
     // Atualizar quantidade
@@ -283,14 +261,14 @@ export const updateCartItem = async (
     return await getCart({}, userId, db);
   } catch (error) {
     console.error("Erro ao atualizar item do carrinho:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao atualizar item do carrinho",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao atualizar item do carrinho",
+      cause: error,
+    });
   }
 };
 
@@ -298,7 +276,7 @@ export const updateCartItem = async (
 export const removeFromCart = async (
   input: RemoveFromCartInput,
   userId: string,
-  db: DBClient
+  db: DBClient,
 ) => {
   try {
     // Verificar se o usuário tem um carrinho
@@ -307,13 +285,10 @@ export const removeFromCart = async (
     });
 
     if (!cart) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Carrinho não encontrado",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Carrinho não encontrado",
+      });
     }
 
     // Verificar se o item está no carrinho do usuário
@@ -323,13 +298,10 @@ export const removeFromCart = async (
     });
 
     if (!cartItem) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Item não encontrado no carrinho",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Item não encontrado no carrinho",
+      });
     }
 
     // Remover o item
@@ -347,14 +319,14 @@ export const removeFromCart = async (
     return await getCart({}, userId, db);
   } catch (error) {
     console.error("Erro ao remover item do carrinho:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao remover item do carrinho",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao remover item do carrinho",
+      cause: error,
+    });
   }
 };
 
@@ -362,7 +334,7 @@ export const removeFromCart = async (
 export const clearCart = async (
   _input: ClearCartInput,
   userId: string,
-  db: DBClient
+  db: DBClient,
 ) => {
   try {
     // Verificar se o usuário tem um carrinho
@@ -371,13 +343,10 @@ export const clearCart = async (
     });
 
     if (!cart) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Carrinho não encontrado",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Carrinho não encontrado",
+      });
     }
 
     // Remover todos os itens do carrinho
@@ -393,13 +362,13 @@ export const clearCart = async (
     return await getCart({}, userId, db);
   } catch (error) {
     console.error("Erro ao limpar carrinho:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao limpar o carrinho",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao limpar o carrinho",
+      cause: error,
+    });
   }
-}; 
+};

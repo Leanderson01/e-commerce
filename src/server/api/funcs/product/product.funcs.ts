@@ -13,6 +13,7 @@ import type {
   DeleteProductInput,
   UploadProductImageInput,
 } from "./product.types";
+import { TRPCError } from "@trpc/server";
 
 // Listar produtos disponíveis
 export const getProducts = async (input: GetProductsInput, db: DBClient) => {
@@ -44,26 +45,23 @@ export const getProducts = async (input: GetProductsInput, db: DBClient) => {
     const total = countResult[0]?.count ?? 0;
 
     return {
-      data: {
-        products,
-        pagination: {
-          total,
-          limit: input.limit,
-          offset: input.offset,
-        },
+      products,
+      pagination: {
+        total,
+        limit: input.limit,
+        offset: input.offset,
       },
-      error: null,
     };
   } catch (error) {
-    console.error("Error getting products:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao buscar produtos",
-        cause: error,
-      },
-    };
+    console.error("Erro ao buscar produtos:", error);
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao buscar produtos",
+      cause: error,
+    });
   }
 };
 
@@ -81,29 +79,23 @@ export const getProductById = async (
     });
 
     if (!product) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Produto não encontrado",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Produto não encontrado",
+      });
     }
 
-    return {
-      data: product,
-      error: null,
-    };
+    return product;
   } catch (error) {
-    console.error("Error getting product:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao buscar o produto",
-        cause: error,
-      },
-    };
+    console.error("Erro ao buscar produto:", error);
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao buscar o produto",
+      cause: error,
+    });
   }
 };
 
@@ -119,13 +111,10 @@ export const getProductsByCategory = async (
     });
 
     if (!category) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Categoria não encontrada",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Categoria não encontrada",
+      });
     }
 
     // Construir o filtro
@@ -157,27 +146,24 @@ export const getProductsByCategory = async (
     const total = countResult[0]?.count ?? 0;
 
     return {
-      data: {
-        category,
-        products,
-        pagination: {
-          total,
-          limit: input.limit,
-          offset: input.offset,
-        },
+      category,
+      products,
+      pagination: {
+        total,
+        limit: input.limit,
+        offset: input.offset,
       },
-      error: null,
     };
   } catch (error) {
-    console.error("Error getting products by category:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao buscar produtos por categoria",
-        cause: error,
-      },
-    };
+    console.error("Erro ao buscar produtos por categoria:", error);
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao buscar produtos por categoria",
+      cause: error,
+    });
   }
 };
 
@@ -194,13 +180,10 @@ export const createProduct = async (
       });
 
       if (!category) {
-        return {
-          data: null,
-          error: {
-            code: "NOT_FOUND",
-            message: "Categoria não encontrada",
-          },
-        };
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Categoria não encontrada",
+        });
       }
     }
 
@@ -214,30 +197,27 @@ export const createProduct = async (
         name: input.name,
         description: input.description ?? null,
         price: String(input.price), // Converter para string para compatibilidade com o tipo numeric
-        stockQuantity: input.stockQuantity,
+        stockQuantity: input.stockQuantity ?? 0,
         categoryId: input.categoryId ?? null,
         imageUrl: input.imageUrl ?? null,
       })
       .returning();
 
-    return {
-      data: newProduct,
-      error: null,
-    };
+    return newProduct;
   } catch (error) {
-    console.error("Error creating product:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao criar o produto",
-        cause: error,
-      },
-    };
+    console.error("Erro ao criar produto:", error);
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao criar o produto",
+      cause: error,
+    });
   }
 };
 
-// Atualizar dados do produto
+// Atualizar produto
 export const updateProduct = async (
   input: UpdateProductInput,
   db: DBClient,
@@ -249,29 +229,27 @@ export const updateProduct = async (
     });
 
     if (!existingProduct) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Produto não encontrado",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Produto não encontrado",
+      });
     }
 
-    // Verificar se a categoria existe se categoryId foi fornecido
-    if (input.categoryId) {
-      const category = await db.query.CategoriesTable.findFirst({
-        where: (categories, { eq }) => eq(categories.id, input.categoryId!),
-      });
+    // Verificar se a categoria existe se foi fornecida
+    if (input.categoryId !== undefined) {
+      // Se categoryId for null, permitimos definir como null
+      // Caso contrário, verificamos se a categoria existe
+      if (input.categoryId !== null) {
+        const category = await db.query.CategoriesTable.findFirst({
+          where: (categories, { eq }) => eq(categories.id, input.categoryId!),
+        });
 
-      if (!category) {
-        return {
-          data: null,
-          error: {
+        if (!category) {
+          throw new TRPCError({
             code: "NOT_FOUND",
             message: "Categoria não encontrada",
-          },
-        };
+          });
+        }
       }
     }
 
@@ -295,24 +273,21 @@ export const updateProduct = async (
       .where(eq(ProductsTable.id, input.id))
       .returning();
 
-    return {
-      data: updatedProduct,
-      error: null,
-    };
+    return updatedProduct;
   } catch (error) {
-    console.error("Error updating product:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao atualizar o produto",
-        cause: error,
-      },
-    };
+    console.error("Erro ao atualizar produto:", error);
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao atualizar o produto",
+      cause: error,
+    });
   }
 };
 
-// Atualizar estoque do produto
+// Atualizar estoque de um produto
 export const updateProductStock = async (
   input: UpdateProductStockInput,
   db: DBClient,
@@ -324,16 +299,13 @@ export const updateProductStock = async (
     });
 
     if (!existingProduct) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Produto não encontrado",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Produto não encontrado",
+      });
     }
 
-    // Atualizar o estoque
+    // Atualizar estoque
     const [updatedProduct] = await db
       .update(ProductsTable)
       .set({
@@ -343,24 +315,21 @@ export const updateProductStock = async (
       .where(eq(ProductsTable.id, input.id))
       .returning();
 
-    return {
-      data: updatedProduct,
-      error: null,
-    };
+    return updatedProduct;
   } catch (error) {
-    console.error("Error updating product stock:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao atualizar o estoque do produto",
-        cause: error,
-      },
-    };
+    console.error("Erro ao atualizar estoque do produto:", error);
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao atualizar estoque do produto",
+      cause: error,
+    });
   }
 };
 
-// Excluir produto
+// Excluir um produto
 export const deleteProduct = async (
   input: DeleteProductInput,
   db: DBClient,
@@ -372,36 +341,30 @@ export const deleteProduct = async (
     });
 
     if (!existingProduct) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Produto não encontrado",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Produto não encontrado",
+      });
     }
 
     // Excluir o produto
     await db.delete(ProductsTable).where(eq(ProductsTable.id, input.id));
 
-    return {
-      data: { success: true },
-      error: null,
-    };
+    return { success: true };
   } catch (error) {
-    console.error("Error deleting product:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao excluir o produto",
-        cause: error,
-      },
-    };
+    console.error("Erro ao excluir produto:", error);
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao excluir o produto",
+      cause: error,
+    });
   }
 };
 
-// Upload de imagem de produto
+// Fazer upload da imagem do produto
 export const uploadProductImage = async (
   input: UploadProductImageInput,
   db: DBClient,
@@ -414,94 +377,114 @@ export const uploadProductImage = async (
     });
 
     if (!existingProduct) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Produto não encontrado",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Produto não encontrado",
+      });
     }
 
-    // Validar base64
-    const isBase64 = /^data:image\/[a-z]+;base64,/.test(input.imageData);
-    if (!isBase64) {
-      return {
-        data: null,
-        error: {
-          code: "BAD_REQUEST",
-          message: "Formato inválido. É esperado uma string em base64",
-        },
-      };
+    // Verificar se um arquivo foi fornecido
+    if (!input.imageData) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Nenhuma imagem fornecida",
+      });
     }
 
-    // Extrair os dados da base64
-    const base64Data = input.imageData.split(",")[1];
-
-    if (!base64Data) {
-      return {
-        data: null,
-        error: {
-          code: "BAD_REQUEST",
-          message: "Dados da imagem inválidos",
-        },
-      };
+    // Validar o formato base64
+    if (
+      typeof input.imageData !== "string" ||
+      !input.imageData.startsWith("data:")
+    ) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message:
+          "Formato de imagem inválido. Esperado string base64 com prefixo data:image",
+      });
     }
 
-    // Nome do arquivo único
-    const fileExtension = input.filename.split(".").pop() ?? "png";
-    const fileName = `${input.id}-${Date.now()}.${fileExtension}`;
-    const filePath = `products/${fileName}`;
+    // Processar a string base64 de forma segura
+    const parts = input.imageData.split(",");
+    if (parts.length !== 2) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Formato de imagem inválido",
+      });
+    }
 
-    // Upload para o Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    // Extrair o tipo de conteúdo
+    const mimeTypePart = parts[0];
+    const mimeTypeMatch = mimeTypePart
+      ? /^data:([^;]+);base64$/.exec(mimeTypePart)
+      : null;
+
+    if (!mimeTypeMatch) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Tipo de mídia inválido",
+      });
+    }
+
+    const contentType = mimeTypeMatch[1];
+
+    // Verificar se é uma imagem
+    if (!contentType?.startsWith("image/")) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "O arquivo deve ser uma imagem",
+      });
+    }
+
+    // Dados base64
+    const base64Data = parts[1];
+    const buffer = Buffer.from(base64Data ?? "", "base64");
+
+    // Definir extensão do arquivo
+    const fileExtension = contentType?.split("/")[1] ?? "png";
+    const fileName = `${input.filename}-${Date.now()}.${fileExtension}`;
+    const filePath = `produtos/${fileName}`;
+
+    // Fazer upload para o Supabase
+    const { data, error } = await supabase.storage
       .from("product-images")
-      .upload(filePath, Buffer.from(base64Data, "base64"), {
-        contentType: `image/${fileExtension}`,
+      .upload(filePath, buffer, {
+        contentType,
+        upsert: true,
       });
 
-    if (uploadError || !uploadData) {
-      return {
-        data: null,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Falha ao fazer upload da imagem",
-          cause: uploadError,
-        },
-      };
+    if (error || !data) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Falha ao fazer upload da imagem",
+        cause: error,
+      });
     }
 
-    // Obter URL pública da imagem usando o caminho do arquivo carregado
-    const { data: publicUrl } = supabase.storage
+    // Obter URL pública da imagem
+    const { data: urlData } = supabase.storage
       .from("product-images")
-      .getPublicUrl(uploadData.path || filePath);
+      .getPublicUrl(filePath);
 
-    // Atualizar o produto com a URL da imagem
+    // Atualizar URL da imagem no produto
     const [updatedProduct] = await db
       .update(ProductsTable)
       .set({
-        imageUrl: publicUrl.publicUrl,
+        imageUrl: urlData.publicUrl,
         updatedAt: new Date(),
       })
       .where(eq(ProductsTable.id, input.id))
       .returning();
 
-    return {
-      data: {
-        product: updatedProduct,
-        imageUrl: publicUrl.publicUrl,
-      },
-      error: null,
-    };
+    return updatedProduct;
   } catch (error) {
-    console.error("Error uploading product image:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao fazer upload da imagem do produto",
-        cause: error,
-      },
-    };
+    console.error("Erro ao fazer upload da imagem do produto:", error);
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao fazer upload da imagem do produto",
+      cause: error,
+    });
   }
 };

@@ -9,6 +9,7 @@ import type {
   GetOutOfStockProductsInput,
   GetDailyRevenueInput,
 } from "./report.types";
+import { TRPCError } from "@trpc/server";
 
 // Obter total de compras por cliente em período
 export const getOrdersByCustomer = async (
@@ -22,13 +23,10 @@ export const getOrdersByCustomer = async (
 
     // Validar as datas
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return {
-        data: null,
-        error: {
-          code: "BAD_REQUEST",
-          message: "Datas inválidas",
-        },
-      };
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Datas inválidas",
+      });
     }
 
     // Consulta para obter total de compras por cliente no período
@@ -45,8 +43,8 @@ export const getOrdersByCustomer = async (
       .where(
         and(
           gte(OrdersTable.orderDate, startDate),
-          lte(OrdersTable.orderDate, endDate)
-        )
+          lte(OrdersTable.orderDate, endDate),
+        ),
       )
       .groupBy(OrdersTable.userId, ProfilesTable.fullName)
       .orderBy(desc(sql`COUNT(${OrdersTable.id})`))
@@ -62,33 +60,30 @@ export const getOrdersByCustomer = async (
       .where(
         and(
           gte(OrdersTable.orderDate, startDate),
-          lte(OrdersTable.orderDate, endDate)
-        )
+          lte(OrdersTable.orderDate, endDate),
+        ),
       );
 
     const total = totalResult[0]?.count ?? 0;
 
     return {
-      data: {
-        customerOrders,
-        pagination: {
-          total,
-          limit: input.limit,
-          offset: input.offset,
-        },
+      customerOrders,
+      pagination: {
+        total,
+        limit: input.limit,
+        offset: input.offset,
       },
-      error: null,
     };
   } catch (error) {
     console.error("Erro ao buscar compras por cliente:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao obter relatório de compras por cliente",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao obter relatório de compras por cliente",
+      cause: error,
+    });
   }
 };
 
@@ -118,26 +113,23 @@ export const getOutOfStockProducts = async (
     const total = countResult[0]?.count ?? 0;
 
     return {
-      data: {
-        products,
-        pagination: {
-          total,
-          limit: input.limit,
-          offset: input.offset,
-        },
+      products,
+      pagination: {
+        total,
+        limit: input.limit,
+        offset: input.offset,
       },
-      error: null,
     };
   } catch (error) {
     console.error("Erro ao buscar produtos sem estoque:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao obter relatório de produtos sem estoque",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao obter relatório de produtos sem estoque",
+      cause: error,
+    });
   }
 };
 
@@ -153,13 +145,10 @@ export const getDailyRevenue = async (
 
     // Validar as datas
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return {
-        data: null,
-        error: {
-          code: "BAD_REQUEST",
-          message: "Datas inválidas",
-        },
-      };
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Datas inválidas",
+      });
     }
 
     // Consulta para obter receita diária no período
@@ -173,8 +162,8 @@ export const getDailyRevenue = async (
       .where(
         and(
           gte(OrdersTable.orderDate, startDate),
-          lte(OrdersTable.orderDate, endDate)
-        )
+          lte(OrdersTable.orderDate, endDate),
+        ),
       )
       .groupBy(sql`DATE(${OrdersTable.orderDate})`)
       .orderBy(asc(sql`DATE(${OrdersTable.orderDate})`));
@@ -190,32 +179,29 @@ export const getDailyRevenue = async (
       .where(
         and(
           gte(OrdersTable.orderDate, startDate),
-          lte(OrdersTable.orderDate, endDate)
-        )
+          lte(OrdersTable.orderDate, endDate),
+        ),
       );
 
     return {
-      data: {
-        dailyRevenue,
-        summary: {
-          totalRevenue: totalResult[0]?.totalRevenue ?? "0",
-          totalOrders: totalResult[0]?.totalOrders ?? 0,
-          totalDays: totalResult[0]?.totalDays ?? 0,
-          startDate: startDate.toISOString().split("T")[0],
-          endDate: endDate.toISOString().split("T")[0],
-        }
+      dailyRevenue,
+      summary: {
+        totalRevenue: totalResult[0]?.totalRevenue ?? "0",
+        totalOrders: totalResult[0]?.totalOrders ?? 0,
+        totalDays: totalResult[0]?.totalDays ?? 0,
+        startDate: startDate.toISOString().split("T")[0],
+        endDate: endDate.toISOString().split("T")[0],
       },
-      error: null,
     };
   } catch (error) {
     console.error("Erro ao buscar receita diária:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao obter relatório de receita diária",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao obter relatório de receita diária",
+      cause: error,
+    });
   }
-}; 
+};

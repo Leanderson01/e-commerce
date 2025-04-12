@@ -9,6 +9,7 @@ import type {
   DeleteUserAccountInput,
 } from "./auth.types";
 import { eq } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
 
 export const login = async (
   input: LoginInput,
@@ -25,24 +26,18 @@ export const login = async (
     });
 
     if (!user) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "User not found",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Usuário não encontrado",
+      });
     }
 
     // Check if user is active
     if (!user.isActive) {
-      return {
-        data: null,
-        error: {
-          code: "UNAUTHORIZED",
-          message: "Account is inactive",
-        },
-      };
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Conta inativa",
+      });
     }
 
     // Use Supabase to validate credentials
@@ -52,38 +47,32 @@ export const login = async (
     });
 
     if (error) {
-      return {
-        data: null,
-        error: {
-          code: "UNAUTHORIZED",
-          message: "Invalid credentials",
-          cause: error,
-        },
-      };
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Credenciais inválidas",
+        cause: error,
+      });
     }
 
     return {
-      data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          profile: user._profile,
-        },
-        session: data.session,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        profile: user._profile,
       },
-      error: null,
+      session: data.session,
     };
   } catch (error) {
     console.error("Error during login:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to login",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Erro ao fazer login",
+      cause: error,
+    });
   }
 };
 
@@ -99,14 +88,11 @@ export const signup = async (
     });
 
     if (existingUser) {
-      return {
-        data: null,
-        error: {
-          code: "CONFLICT",
-          message: "User with this email already exists",
-          cause: existingUser,
-        },
-      };
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Usuário com este email já existe",
+        cause: existingUser,
+      });
     }
 
     // Register with Supabase - they handle password hashing
@@ -116,14 +102,11 @@ export const signup = async (
     });
 
     if (authError) {
-      return {
-        data: null,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to register with Supabase",
-          cause: authError,
-        },
-      };
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Erro ao registrar com Supabase",
+        cause: authError,
+      });
     }
 
     // Generate a new user ID
@@ -167,27 +150,24 @@ export const signup = async (
     });
 
     return {
-      data: {
-        user: {
-          id: newUser.id,
-          email: newUser.email,
-          role: newUser.role,
-          profile: newUser._profile,
-        },
-        session: authData.session,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        role: newUser.role,
+        profile: newUser._profile,
       },
-      error: null,
+      session: authData.session,
     };
   } catch (error) {
     console.error("Error during signup:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to register user",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Erro ao registrar usuário",
+      cause: error,
+    });
   }
 };
 
@@ -196,30 +176,24 @@ export const logout = async (supabase: SupabaseClient) => {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      return {
-        data: null,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to logout",
-          cause: error,
-        },
-      };
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Erro ao fazer logout",
+        cause: error,
+      });
     }
 
-    return {
-      data: { success: true },
-      error: null,
-    };
+    return { success: true };
   } catch (error) {
     console.error("Error during logout:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to logout",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Erro ao fazer logout",
+      cause: error,
+    });
   }
 };
 
@@ -228,25 +202,19 @@ export const getUserLogged = async (db: DBClient, supabase: SupabaseClient) => {
     const { data: sessionData } = await supabase.auth.getSession();
 
     if (!sessionData.session) {
-      return {
-        data: null,
-        error: {
-          code: "UNAUTHORIZED",
-          message: "No active session found",
-        },
-      };
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Nenhuma sessão ativa encontrada",
+      });
     }
 
     const userEmail = sessionData.session.user.email;
 
     if (!userEmail) {
-      return {
-        data: null,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "User email not found in session",
-        },
-      };
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Email do usuário não encontrado na sessão",
+      });
     }
 
     const user = await db.query.UsersTable.findFirst({
@@ -257,34 +225,28 @@ export const getUserLogged = async (db: DBClient, supabase: SupabaseClient) => {
     });
 
     if (!user) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "User not found in database",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Usuário não encontrado no banco de dados",
+      });
     }
 
     return {
-      data: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        profile: user._profile,
-      },
-      error: null,
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      profile: user._profile,
     };
   } catch (error) {
     console.error("Error getting logged user:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to get logged user",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Erro ao obter usuário logado",
+      cause: error,
+    });
   }
 };
 
@@ -295,29 +257,23 @@ export const getUserProfile = async (userId: string, db: DBClient) => {
     });
 
     if (!profile) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Profile not found",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Perfil não encontrado",
+      });
     }
 
-    return {
-      data: profile,
-      error: null,
-    };
+    return profile;
   } catch (error) {
     console.error("Error getting user profile:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to get user profile",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Erro ao obter perfil do usuário",
+      cause: error,
+    });
   }
 };
 
@@ -333,13 +289,10 @@ export const updateUserProfile = async (
     });
 
     if (!existingProfile) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Profile not found",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Perfil não encontrado",
+      });
     }
 
     // Atualizar o nome completo baseado no primeiro e último nome
@@ -363,20 +316,17 @@ export const updateUserProfile = async (
       .where(eq(ProfilesTable.userId, userId))
       .returning();
 
-    return {
-      data: updatedProfile,
-      error: null,
-    };
+    return updatedProfile;
   } catch (error) {
     console.error("Error updating user profile:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to update user profile",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Erro ao atualizar perfil do usuário",
+      cause: error,
+    });
   }
 };
 
@@ -393,13 +343,10 @@ export const deleteUserAccount = async (
     });
 
     if (!user) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "User not found",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Usuário não encontrado",
+      });
     }
 
     // Verificar senha com Supabase
@@ -410,14 +357,11 @@ export const deleteUserAccount = async (
       });
 
     if (authError || !authData.session) {
-      return {
-        data: null,
-        error: {
-          code: "UNAUTHORIZED",
-          message: "Invalid password",
-          cause: authError,
-        },
-      };
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Senha inválida",
+        cause: authError,
+      });
     }
 
     // Excluir o usuário no Supabase
@@ -426,33 +370,27 @@ export const deleteUserAccount = async (
     );
 
     if (deleteSupabaseError) {
-      return {
-        data: null,
-        error: {
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to delete user in Supabase",
-          cause: deleteSupabaseError,
-        },
-      };
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Erro ao excluir usuário no Supabase",
+        cause: deleteSupabaseError,
+      });
     }
 
     // Excluir o usuário no banco de dados
     // Nota: A exclusão em cascata deve excluir automaticamente o perfil
     await db.delete(UsersTable).where(eq(UsersTable.id, userId));
 
-    return {
-      data: { success: true },
-      error: null,
-    };
+    return { success: true };
   } catch (error) {
-    console.error("Error deleting user account:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Failed to delete user account",
-        cause: error,
-      },
-    };
+    console.error("Erro ao excluir conta de usuário:", error);
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Erro ao excluir conta de usuário",
+      cause: error,
+    });
   }
 };

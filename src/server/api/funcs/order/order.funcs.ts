@@ -12,6 +12,7 @@ import type {
   GetAllOrdersInput,
   DeleteOrderInput,
 } from "./order.types";
+import { TRPCError } from "@trpc/server";
 
 // Criar pedido a partir do carrinho atual
 export const createOrder = async (
@@ -35,44 +36,35 @@ export const createOrder = async (
       });
 
       if (!cart?._items?.length) {
-        return {
-          data: null,
-          error: {
-            code: "BAD_REQUEST",
-            message: "Carrinho vazio ou não encontrado",
-          },
-        };
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Carrinho vazio ou não encontrado",
+        });
       }
 
       // Verificar estoque de todos os produtos
       for (const item of cart._items) {
         const product = item._product;
-        
+
         if (!product) {
-          return {
-            data: null,
-            error: {
-              code: "NOT_FOUND",
-              message: `Produto ID ${item.productId} não encontrado`,
-            },
-          };
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `Produto ID ${item.productId} não encontrado`,
+          });
         }
 
         if ((product.stockQuantity ?? 0) < item.quantity) {
-          return {
-            data: null,
-            error: {
-              code: "BAD_REQUEST",
-              message: `Estoque insuficiente para o produto ${product.name}`,
-            },
-          };
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Estoque insuficiente para o produto ${product.name}`,
+          });
         }
       }
 
       // Calcular valor total
       const totalAmount = cart._items.reduce(
         (total, item) => total + Number(item.unitPrice) * item.quantity,
-        0
+        0,
       );
 
       // Criar o pedido
@@ -88,7 +80,10 @@ export const createOrder = async (
         .returning();
 
       if (!newOrder) {
-        throw new Error("Falha ao criar pedido");
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Falha ao criar pedido",
+        });
       }
 
       // Criar os itens do pedido
@@ -113,25 +108,20 @@ export const createOrder = async (
       }
 
       // Limpar o carrinho após finalizar o pedido
-      await tx
-        .delete(CartItemsTable)
-        .where(eq(CartItemsTable.cartId, cart.id));
+      await tx.delete(CartItemsTable).where(eq(CartItemsTable.cartId, cart.id));
 
-      return {
-        data: newOrder,
-        error: null,
-      };
+      return newOrder;
     });
   } catch (error) {
     console.error("Erro ao criar pedido:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao criar pedido",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao criar pedido",
+      cause: error,
+    });
   }
 };
 
@@ -166,26 +156,23 @@ export const getUserOrders = async (
     const total = countResult[0]?.count ?? 0;
 
     return {
-      data: {
-        orders,
-        pagination: {
-          total,
-          limit: input.limit,
-          offset: input.offset,
-        },
+      orders,
+      pagination: {
+        total,
+        limit: input.limit,
+        offset: input.offset,
       },
-      error: null,
     };
   } catch (error) {
     console.error("Erro ao buscar pedidos do usuário:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao buscar pedidos",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao buscar pedidos",
+      cause: error,
+    });
   }
 };
 
@@ -217,68 +204,59 @@ export const getOrderById = async (
     });
 
     if (!order) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Pedido não encontrado",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Pedido não encontrado",
+      });
     }
 
-    return {
-      data: order,
-      error: null,
-    };
+    return order;
   } catch (error) {
     console.error("Erro ao buscar detalhes do pedido:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao buscar detalhes do pedido",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao buscar detalhes do pedido",
+      cause: error,
+    });
   }
 };
 
 // Listar todos os pedidos (admin)
-export const getAllOrders = async (
-  input: GetAllOrdersInput,
-  db: DBClient,
-) => {
+export const getAllOrders = async (input: GetAllOrdersInput, db: DBClient) => {
   try {
     // Montar condições de filtro
     const whereConditions = [];
-    
+
     if (input.userId) {
       whereConditions.push(eq(OrdersTable.userId, input.userId));
     }
-    
+
     if (input.status) {
       whereConditions.push(eq(OrdersTable.status, input.status));
     }
-    
+
     if (input.startDate && input.endDate) {
       whereConditions.push(
         between(
           OrdersTable.orderDate,
           new Date(input.startDate),
-          new Date(input.endDate)
-        )
+          new Date(input.endDate),
+        ),
       );
     } else if (input.startDate) {
-      whereConditions.push(gte(OrdersTable.orderDate, new Date(input.startDate)));
+      whereConditions.push(
+        gte(OrdersTable.orderDate, new Date(input.startDate)),
+      );
     } else if (input.endDate) {
       whereConditions.push(lte(OrdersTable.orderDate, new Date(input.endDate)));
     }
-    
+
     // Montar a consulta
     const orders = await db.query.OrdersTable.findMany({
-      where: whereConditions.length > 0 
-        ? and(...whereConditions) 
-        : undefined,
+      where: whereConditions.length > 0 ? and(...whereConditions) : undefined,
       limit: input.limit,
       offset: input.offset,
       orderBy: [desc(OrdersTable.orderDate)],
@@ -296,7 +274,7 @@ export const getAllOrders = async (
     const countQuery = db
       .select({ count: sql<number>`count(*)` })
       .from(OrdersTable);
-    
+
     if (whereConditions.length > 0) {
       countQuery.where(and(...whereConditions));
     }
@@ -305,34 +283,28 @@ export const getAllOrders = async (
     const total = countResult[0]?.count ?? 0;
 
     return {
-      data: {
-        orders,
-        pagination: {
-          total,
-          limit: input.limit,
-          offset: input.offset,
-        },
+      orders,
+      pagination: {
+        total,
+        limit: input.limit,
+        offset: input.offset,
       },
-      error: null,
     };
   } catch (error) {
     console.error("Erro ao buscar todos os pedidos:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao buscar pedidos",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao buscar pedidos",
+      cause: error,
+    });
   }
 };
 
 // Remover um pedido (admin)
-export const deleteOrder = async (
-  input: DeleteOrderInput,
-  db: DBClient,
-) => {
+export const deleteOrder = async (input: DeleteOrderInput, db: DBClient) => {
   try {
     // Buscar o pedido para garantir que existe
     const order = await db.query.OrdersTable.findFirst({
@@ -343,13 +315,10 @@ export const deleteOrder = async (
     });
 
     if (!order) {
-      return {
-        data: null,
-        error: {
-          code: "NOT_FOUND",
-          message: "Pedido não encontrado",
-        },
-      };
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Pedido não encontrado",
+      });
     }
 
     // Remover o pedido (em transação para garantir consistência)
@@ -375,20 +344,17 @@ export const deleteOrder = async (
         .where(eq(OrdersTable.id, input.id))
         .returning();
 
-      return {
-        data: deletedOrder,
-        error: null,
-      };
+      return deletedOrder;
     });
   } catch (error) {
     console.error("Erro ao remover pedido:", error);
-    return {
-      data: null,
-      error: {
-        code: "INTERNAL_SERVER_ERROR",
-        message: "Falha ao remover pedido",
-        cause: error,
-      },
-    };
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Falha ao remover pedido",
+      cause: error,
+    });
   }
-}; 
+};
