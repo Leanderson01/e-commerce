@@ -28,10 +28,6 @@ export const categoryFormRouter = createTRPCRouter({
   // Adicionar nova categoria (admin)
   createCategory: protectedProcedure
     .input(createCategorySchema)
-    .use(({ ctx, next }) => {
-      isAdmin(ctx as Record<string, unknown>);
-      return next({ ctx });
-    })
     .mutation(async ({ input, ctx }) => {
       const result = await createCategory(input, ctx.db);
       return result;
@@ -40,10 +36,6 @@ export const categoryFormRouter = createTRPCRouter({
   // Atualizar categoria (admin)
   updateCategory: protectedProcedure
     .input(updateCategorySchema)
-    .use(({ ctx, next }) => {
-      isAdmin(ctx as Record<string, unknown>);
-      return next({ ctx });
-    })
     .mutation(async ({ input, ctx }) => {
       const result = await updateCategory(input, ctx.db);
       return result;
@@ -52,10 +44,6 @@ export const categoryFormRouter = createTRPCRouter({
   // Remover categoria (admin)
   deleteCategory: protectedProcedure
     .input(deleteCategorySchema)
-    .use(({ ctx, next }) => {
-      isAdmin(ctx as Record<string, unknown>);
-      return next({ ctx });
-    })
     .mutation(async ({ input, ctx }) => {
       const result = await deleteCategory(input, ctx.db);
       return result;

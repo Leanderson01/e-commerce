@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-
+import { createBrowserClient } from "@supabase/ssr";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { env } from "~/env";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -34,8 +35,30 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const router = useRouter();
+  
   const loginMutation = api.auth.form.login.useMutation({
-    onSuccess: () => {
+    onSuccess: async (data) => {
+      // Armazenar a sessão explicitamente
+      if (data.session) {
+        // Criar e configurar o cliente do Supabase para armazenar a sessão
+        const supabase = createBrowserClient(
+          env.NEXT_PUBLIC_SUPABASE_URL,
+          env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        );
+        
+        // Define a sessão no cliente do Supabase
+        const { error } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+        
+        if (error) {
+          console.error("Erro ao definir a sessão:", error);
+          toast.error("Erro ao definir a sessão");
+          return;
+        }
+      }
+      
       toast.success("Login realizado com sucesso");
       router.push("/");
     },
