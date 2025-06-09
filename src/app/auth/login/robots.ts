@@ -3,8 +3,8 @@ import { type Metadata, type MetadataRoute } from "next";
 export const metadata: Metadata = {
   title: "Login | E-commerce",
   description:
-    "Faça login na sua conta para acessar todas as funcionalidades da plataforma",
-  keywords: ["login", "e-commerce", "conta", "autenticação", "acesso"],
+    "Make login in your account to access all the features of the platform",
+  keywords: ["login", "e-commerce", "account", "authentication", "access"],
 };
 
 export default function robots(): MetadataRoute.Robots {
