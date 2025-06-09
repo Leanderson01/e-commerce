@@ -396,6 +396,7 @@ export const deleteUserAccount = async (
   input: DeleteUserAccountInput,
   db: DBClient,
   supabase: SupabaseClient,
+  supabaseAdmin: SupabaseClient,
 ) => {
   try {
     const user = await db.query.UsersTable.findFirst({
@@ -423,7 +424,7 @@ export const deleteUserAccount = async (
       });
     }
 
-    const { error: deleteSupabaseError } = await supabase.auth.admin.deleteUser(
+    const { error: deleteSupabaseError } = await supabaseAdmin.auth.admin.deleteUser(
       authData.user.id,
     );
 

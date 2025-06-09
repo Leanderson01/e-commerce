@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { AccountDashboard } from "./account-dashboard";
 import { AccountDetails } from "./account-details";
 import { ComingSoon } from "./coming-soon";
+import { LogoutButton } from "./logout-button";
 
 export function AccountTabs() {
   return (
@@ -61,7 +62,12 @@ export function AccountTabs() {
         </TabsContent>
 
         <TabsContent value="logout" className="mt-0 p-0">
-          <ComingSoon title="Logout" />
+          <div className="mx-auto max-w-lg">
+            <h2 className="mb-8 text-center text-xl font-normal text-gray-900 dark:text-white">
+              Logout
+            </h2>
+            <LogoutButton />
+          </div>
         </TabsContent>
       </div>
     </Tabs>

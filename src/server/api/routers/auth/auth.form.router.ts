@@ -71,6 +71,7 @@ export const authFormRouter = createTRPCRouter({
         input,
         ctx.db,
         ctx.supabase,
+        ctx.supabaseAdmin,
       );
       return result;
     }),
