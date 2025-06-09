@@ -6,6 +6,7 @@ import type {
   LoginInput,
   SignupInput,
   UpdateUserProfileInput,
+  UpdateUserProfileWithPasswordInput,
   DeleteUserAccountInput,
 } from "./auth.types";
 import { eq } from "drizzle-orm";
@@ -330,6 +331,66 @@ export const updateUserProfile = async (
   }
 };
 
+export const updateUserProfileWithPassword = async (
+  userId: string,
+  input: UpdateUserProfileWithPasswordInput,
+  db: DBClient,
+  supabase: SupabaseClient,
+) => {
+  try {
+    const existingProfile = await db.query.ProfilesTable.findFirst({
+      where: (profiles, { eq }) => eq(profiles.userId, userId),
+    });
+
+    if (!existingProfile) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "Perfil não encontrado",
+      });
+    }
+
+    const fullName = `${input.firstName} ${input.lastName}`;
+
+    const [updatedProfile] = await db
+      .update(ProfilesTable)
+      .set({
+        firstName: input.firstName,
+        lastName: input.lastName,
+        fullName,
+        phone: input.phone,
+        updatedAt: new Date(),
+      })
+      .where(eq(ProfilesTable.userId, userId))
+      .returning();
+
+    if (input.password) {
+      const { error: passwordError } = await supabase.auth.updateUser({
+        password: input.password,
+      });
+
+      if (passwordError) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Erro ao atualizar senha",
+          cause: passwordError,
+        });
+      }
+    }
+
+    return updatedProfile;
+  } catch (error) {
+    console.error("Error updating user profile with password:", error);
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Erro ao atualizar perfil do usuário",
+      cause: error,
+    });
+  }
+};
+
 export const deleteUserAccount = async (
   userId: string,
   input: DeleteUserAccountInput,
@@ -337,7 +398,6 @@ export const deleteUserAccount = async (
   supabase: SupabaseClient,
 ) => {
   try {
-    // Buscar usuário para verificar se existe
     const user = await db.query.UsersTable.findFirst({
       where: (users, { eq }) => eq(users.id, userId),
     });
@@ -349,7 +409,6 @@ export const deleteUserAccount = async (
       });
     }
 
-    // Verificar senha com Supabase
     const { data: authData, error: authError } =
       await supabase.auth.signInWithPassword({
         email: user.email,
@@ -364,7 +423,6 @@ export const deleteUserAccount = async (
       });
     }
 
-    // Excluir o usuário no Supabase
     const { error: deleteSupabaseError } = await supabase.auth.admin.deleteUser(
       authData.user.id,
     );
@@ -377,8 +435,6 @@ export const deleteUserAccount = async (
       });
     }
 
-    // Excluir o usuário no banco de dados
-    // Nota: A exclusão em cascata deve excluir automaticamente o perfil
     await db.delete(UsersTable).where(eq(UsersTable.id, userId));
 
     return { success: true };

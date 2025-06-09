@@ -1,14 +1,10 @@
-"use client";
+import { AccountTabs } from "./_components/account-tabs";
 
-import { api } from "~/trpc/react";
-
-export default function ProfilePage() {
-  const [user] = api.auth.user.getUserLogged.useSuspenseQuery();
-
+export default function MyAccountPage() {
   return (
-    <div className="flex flex-col items-center justify-center">
-      <h1 className="text-2xl font-bold">Profile</h1>
-      <p className="text-muted-foreground text-sm">{user?.email}</p>
+    <div className="mx-auto max-w-4xl px-4 py-8">
+      <h1 className="mb-8 text-center text-2xl font-medium">My Account</h1>
+      <AccountTabs />
     </div>
   );
 }
