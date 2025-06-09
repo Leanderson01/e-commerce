@@ -68,7 +68,7 @@ export function LoginForm() {
       <CardHeader className="space-y-1">
         <CardTitle className="text-3xl font-bold">Bem-vindo de volta</CardTitle>
         <CardDescription>
-          Entre com suas credenciais para acessar sua conta
+          Entre com suas credenciais para acessar sua contaggg
         </CardDescription>
       </CardHeader>
       <CardContent>
