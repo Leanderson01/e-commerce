@@ -7,4 +7,4 @@ export const metadata: Metadata = {
 
 export default function NewCategoryPage() {
   return <CategoryCreateForm />;
-} 
+}

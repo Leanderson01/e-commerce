@@ -5,10 +5,11 @@ import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 
 export default function CategoriesPage() {
-  const [allCategories, { isLoading }] = api.category.list.getCategories.useSuspenseQuery({
-    limit: 10,
-    offset: 0,
-  });
+  const [allCategories, { isLoading }] =
+    api.category.list.getCategories.useSuspenseQuery({
+      limit: 10,
+      offset: 0,
+    });
 
   const deleteMutation = api.category.form.deleteCategory.useMutation({
     onSuccess: () => {
@@ -24,6 +25,10 @@ export default function CategoriesPage() {
       id: allCategories.categories[0]?.id ?? "",
     });
 
+  const profile = api.auth.user.getUserLogged.useQuery();
+
+  console.log(profile.data);
+
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold">Categorias</h1>
@@ -32,12 +37,12 @@ export default function CategoriesPage() {
           <div key={category.id}>{category.name}</div>
         ))}
         <div className="flex flex-col gap-4">
-          <h1 className="text-2xl font-bold flex">Categoria</h1>
-          <div className="flex gap-4 items-center justify-between">
-          <div className="flex flex-col gap-4">
-            <div>{category.name}</div>
-            <div>{category.description}</div>
-          </div>
+          <h1 className="flex text-2xl font-bold">Categoria</h1>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-4">
+              <div>{category.name}</div>
+              <div>{category.description}</div>
+            </div>
             <Button
               variant="destructive"
               onClick={() => {
@@ -46,7 +51,7 @@ export default function CategoriesPage() {
             >
               Remover
             </Button>
-            </div>
+          </div>
         </div>
       </div>
     </div>

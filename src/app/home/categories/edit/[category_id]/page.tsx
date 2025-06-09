@@ -6,8 +6,12 @@ export const metadata: Metadata = {
   title: "Edit Category",
 };
 
-export default function EditCategoryPage({ params }: { params: { category_id: string } }) {
+export default function EditCategoryPage({
+  params,
+}: {
+  params: { category_id: string };
+}) {
   const id = params.category_id;
   if (!id) return notFound();
   return <CategoryEditForm categoryId={id} />;
-} 
+}

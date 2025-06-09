@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { api, HydrateClient } from "~/trpc/server";
 import ChangeThemeBtn from "~/components/change-theme-btn";
+import { SessionDebug } from "~/components/session-debug";
+
 export default async function Home() {
   const hello = await api.test.hello({ text: "from tRPC" });
 
@@ -43,6 +45,7 @@ export default async function Home() {
             </p>
           </div>
         </div>
+        <SessionDebug />
       </main>
     </HydrateClient>
   );
