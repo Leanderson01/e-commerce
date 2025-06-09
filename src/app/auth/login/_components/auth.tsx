@@ -75,7 +75,7 @@ export function AuthForm() {
       }
 
       toast.success("Login successful");
-      router.push("/");
+      router.push("/home/profile");
     },
     onError: (error) => {
       toast.error("Login error", {
@@ -91,6 +91,8 @@ export function AuthForm() {
         "Account created successfully! Please check your email to verify your account.",
       );
       signupForm.reset();
+
+      router.push("/home/profile");
     },
     onError: (error) => {
       toast.error("Signup error", {
