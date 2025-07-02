@@ -35,7 +35,7 @@ import { Badge } from "~/components/ui/badge";
 import { api } from "~/trpc/react";
 
 const navigationItems = [
-  { name: "All", href: "/" },
+  { name: "All", href: "/categories" },
   { name: "Watch", href: "/categories/watch" },
   { name: "Mac", href: "/categories/mac" },
   { name: "iPad", href: "/categories/ipad" },
@@ -74,9 +74,9 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
 
-  // Get user data
+  // Get user data (optional - won't throw error if not logged in)
   const { data: user, isLoading: userLoading } =
-    api.auth.user.getUserLogged.useQuery(undefined, {
+    api.auth.user.getCurrentUser.useQuery(undefined, {
       retry: false,
       refetchOnWindowFocus: false,
     });

@@ -1,6 +1,7 @@
 import type { DBClient } from "~/server/db/src/client";
 import { CartsTable } from "~/server/db/src/schema/cart/cart.table";
 import { CartItemsTable } from "~/server/db/src/schema/cart/cart-item.table";
+import { UsersTable } from "~/server/db/src/schema/user/user.table";
 import { v7 as uuidv7 } from "uuid";
 import { eq } from "drizzle-orm";
 import type {
@@ -14,6 +15,18 @@ import { TRPCError } from "@trpc/server";
 
 // Função auxiliar para obter ou criar um carrinho
 const getOrCreateCart = async (userId: string, db: DBClient) => {
+  // Primeiro, verificar se o usuário existe na nossa tabela
+  const user = await db.query.UsersTable.findFirst({
+    where: (users, { eq }) => eq(users.id, userId),
+  });
+
+  if (!user) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Usuário não encontrado",
+    });
+  }
+
   // Verificar se o usuário já tem um carrinho
   let cart = await db.query.CartsTable.findFirst({
     where: (carts, { eq }) => eq(carts.userId, userId),

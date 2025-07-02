@@ -6,12 +6,13 @@
  * tl;dr - this is where all the tRPC server stuff is created and plugged in.
  * The pieces you will need to use are documented accordingly near the end
  */
-import type { SupabaseClient } from "@supabase/supabase-js"
-import { TRPCError, initTRPC } from "@trpc/server"
-import superjson from "superjson"
-import { ZodError } from "zod"
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { TRPCError, initTRPC } from "@trpc/server";
+import superjson from "superjson";
+import { ZodError } from "zod";
 
-import { db } from "~/server/db/src/client"
+import { db } from "~/server/db/src/client";
+import { UsersTable } from "~/server/db/src/schema/user";
 
 /**
  * 1. CONTEXT
@@ -26,20 +27,49 @@ import { db } from "~/server/db/src/client"
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: {
-  headers: Headers
-  supabase: SupabaseClient
-  supabaseAdmin: SupabaseClient
+  headers: Headers;
+  supabase: SupabaseClient;
+  supabaseAdmin: SupabaseClient;
 }) => {
   const {
-    data: { user }
-  } = await opts.supabase.auth.getUser()
+    data: { user: supabaseUser },
+  } = await opts.supabase.auth.getUser();
+
+  // If we have a Supabase user, find the corresponding user in our database
+  let user = null;
+  if (supabaseUser?.id && supabaseUser?.email) {
+    try {
+      // First try to find by Supabase ID (for new users after the fix)
+      let dbUser = await db.query.UsersTable.findFirst({
+        where: (users, { eq }) => eq(users.id, supabaseUser.id),
+        with: {
+          _profile: true,
+        },
+      });
+
+      // If not found by ID, try by email (for legacy users)
+      dbUser ??= await db.query.UsersTable.findFirst({
+        where: (users, { eq }) => eq(users.email, supabaseUser.email!),
+        with: {
+          _profile: true,
+        },
+      });
+
+      if (dbUser) {
+        user = dbUser;
+      }
+    } catch (error) {
+      console.error("Error fetching user from database:", error);
+    }
+  }
 
   return {
     db,
     user,
-    ...opts
-  }
-}
+    supabaseUser,
+    ...opts,
+  };
+};
 
 /**
  * 2. INITIALIZATION
@@ -52,25 +82,25 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
   errorFormatter: ({ shape, error }) => {
     // For Zod errors, extract the first error message for cleaner client-side display
     if (error.cause instanceof ZodError) {
-      const firstError = error.cause.errors[0]
+      const firstError = error.cause.errors[0];
       if (firstError && firstError.message !== "Required") {
         return {
           ...shape,
           message: firstError.message,
           data: {
             ...shape.data,
-            zodError: error.cause.flatten()
-          }
-        }
+            zodError: error.cause.flatten(),
+          },
+        };
       } else {
         return {
           ...shape,
           message: "Invalid request",
           data: {
             ...shape.data,
-            zodError: error.cause.flatten()
-          }
-        }
+            zodError: error.cause.flatten(),
+          },
+        };
       }
     }
 
@@ -79,17 +109,18 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
       ...shape,
       data: {
         ...shape.data,
-        zodError: error.cause instanceof ZodError ? error.cause.flatten() : null
-      }
-    }
-  }
-})
+        zodError:
+          error.cause instanceof ZodError ? error.cause.flatten() : null,
+      },
+    };
+  },
+});
 
 /**
  * Create a server-side caller
  * @see https://trpc.io/docs/server/server-side-calls
  */
-export const createCallerFactory = t.createCallerFactory
+export const createCallerFactory = t.createCallerFactory;
 
 /**
  * 3. ROUTER & PROCEDURE (THE IMPORTANT BIT)
@@ -102,8 +133,8 @@ export const createCallerFactory = t.createCallerFactory
  * This is how you create new routers and sub routers in your tRPC API
  * @see https://trpc.io/docs/router
  */
-export const createTRPCRouter = t.router
-export const createRouterMerger = t.mergeRouters
+export const createTRPCRouter = t.router;
+export const createRouterMerger = t.mergeRouters;
 
 /**
  * Public (unauthorized) procedure
@@ -114,14 +145,14 @@ export const createRouterMerger = t.mergeRouters
  */
 export const publicProcedure = t.procedure.use(async ({ ctx, next }) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { supabase, supabaseAdmin: _sbAdmin, ...rest } = ctx
+  const { supabase, supabaseAdmin: _sbAdmin, ...rest } = ctx;
   return next({
     ctx: {
       supabase,
-      ...rest
-    }
-  })
-})
+      ...rest,
+    },
+  });
+});
 
 /**
  * Protected (authenticated) procedure
@@ -133,15 +164,15 @@ export const publicProcedure = t.procedure.use(async ({ ctx, next }) => {
  */
 export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
   if (!ctx.user?.id) {
-    throw new TRPCError({ code: "UNAUTHORIZED" })
+    throw new TRPCError({ code: "UNAUTHORIZED" });
   }
   return next({
     ctx: {
       ...ctx,
-      user: ctx.user
-    }
-  })
-})
+      user: ctx.user,
+    },
+  });
+});
 
 // TODO: apply
 

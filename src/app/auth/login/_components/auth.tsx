@@ -92,7 +92,7 @@ export function AuthForm() {
       );
       signupForm.reset();
 
-      router.push("/home/profile");
+      // router.push("/home/profile");
     },
     onError: (error) => {
       toast.error("Signup error", {

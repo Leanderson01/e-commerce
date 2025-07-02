@@ -110,8 +110,8 @@ export const signup = async (
       });
     }
 
-    // Generate a new user ID
-    const userId = uuidv7();
+    // Use Supabase user ID to maintain consistency
+    const userId = authData.user?.id ?? uuidv7();
 
     // Create transaction to insert user and profile
     const [newUser] = await db.transaction(async (tx) => {
@@ -424,9 +424,8 @@ export const deleteUserAccount = async (
       });
     }
 
-    const { error: deleteSupabaseError } = await supabaseAdmin.auth.admin.deleteUser(
-      authData.user.id,
-    );
+    const { error: deleteSupabaseError } =
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
 
     if (deleteSupabaseError) {
       throw new TRPCError({
