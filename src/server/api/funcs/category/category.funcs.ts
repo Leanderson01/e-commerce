@@ -2,13 +2,20 @@ import type { DBClient } from "~/server/db/src/client";
 import { CategoriesTable } from "~/server/db/src/schema/category";
 import { ProductsTable } from "~/server/db/src/schema/product";
 import { v7 as uuidv7 } from "uuid";
-import { eq, desc, asc, sql } from "drizzle-orm";
+import { eq, desc, asc, sql, ilike } from "drizzle-orm";
 import type {
   GetCategoriesInput,
   GetCategoryByIdInput,
+  GetCategoryBySlugInput,
   CreateCategoryInput,
   UpdateCategoryInput,
   DeleteCategoryInput,
+  GetCategoryBySlugResponse,
+  GetCategoriesResponse,
+  GetCategoryByIdResponse,
+  CreateCategoryResponse,
+  UpdateCategoryResponse,
+  DeleteCategoryResponse,
 } from "./category.types";
 import { TRPCError } from "@trpc/server";
 
@@ -16,7 +23,7 @@ import { TRPCError } from "@trpc/server";
 export const getCategories = async (
   input: GetCategoriesInput,
   db: DBClient,
-) => {
+): Promise<GetCategoriesResponse> => {
   try {
     // Buscar categorias com paginação
     const categories = await db.query.CategoriesTable.findMany({
@@ -33,23 +40,87 @@ export const getCategories = async (
     const total = countResult[0]?.count ?? 0;
 
     return {
-      categories,
-      pagination: {
-        total,
-        limit: input.limit,
-        offset: input.offset,
+      success: true,
+      data: {
+        categories,
+        pagination: {
+          total,
+          limit: input.limit,
+          offset: input.offset,
+        },
       },
     };
   } catch (error) {
     console.error("Erro ao buscar categorias:", error);
-    if (error instanceof TRPCError) {
-      throw error;
-    }
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Falha ao buscar categorias",
-      cause: error,
+    return {
+      success: false,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Falha ao buscar categorias",
+      },
+    };
+  }
+};
+
+// Helper function para converter slug para nome de categoria
+const slugToCategoryName = (slug: string): string => {
+  return slug
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+// Obter categoria por slug
+export const getCategoryBySlug = async (
+  input: GetCategoryBySlugInput,
+  db: DBClient,
+): Promise<GetCategoryBySlugResponse> => {
+  try {
+    // Converter slug para nome de categoria
+    const categoryName = slugToCategoryName(input.slug);
+
+    // Buscar categoria pelo nome (case insensitive)
+    const category = await db.query.CategoriesTable.findFirst({
+      where: (categories, { ilike }) => ilike(categories.name, categoryName),
+      with: {
+        _products: {
+          limit: 10,
+          orderBy: [desc(ProductsTable.updatedAt)],
+        },
+      },
     });
+
+    if (!category) {
+      return {
+        success: true,
+        data: null,
+      };
+    }
+
+    // Contar total de produtos na categoria
+    const productCountResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(ProductsTable)
+      .where(eq(ProductsTable.categoryId, category.id));
+
+    const productCount = productCountResult[0]?.count ?? 0;
+
+    return {
+      success: true,
+      data: {
+        ...category,
+        productCount,
+      },
+    };
+  } catch (error) {
+    console.error("Erro ao buscar categoria por slug:", error);
+    return {
+      success: false,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Falha ao buscar categoria por slug",
+      },
+    };
   }
 };
 
@@ -57,7 +128,7 @@ export const getCategories = async (
 export const getCategoryById = async (
   input: GetCategoryByIdInput,
   db: DBClient,
-) => {
+): Promise<GetCategoryByIdResponse> => {
   try {
     // Buscar categoria pelo ID
     const category = await db.query.CategoriesTable.findFirst({
@@ -71,10 +142,13 @@ export const getCategoryById = async (
     });
 
     if (!category) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Categoria não encontrada",
-      });
+      return {
+        success: false,
+        error: {
+          code: "NOT_FOUND",
+          message: "Categoria não encontrada",
+        },
+      };
     }
 
     // Contar total de produtos na categoria
@@ -86,19 +160,21 @@ export const getCategoryById = async (
     const productCount = productCountResult[0]?.count ?? 0;
 
     return {
-      ...category,
-      productCount,
+      success: true,
+      data: {
+        ...category,
+        productCount,
+      },
     };
   } catch (error) {
     console.error("Erro ao buscar categoria:", error);
-    if (error instanceof TRPCError) {
-      throw error;
-    }
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Falha ao buscar detalhes da categoria",
-      cause: error,
-    });
+    return {
+      success: false,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Falha ao buscar detalhes da categoria",
+      },
+    };
   }
 };
 
@@ -106,7 +182,7 @@ export const getCategoryById = async (
 export const createCategory = async (
   input: CreateCategoryInput,
   db: DBClient,
-) => {
+): Promise<CreateCategoryResponse> => {
   try {
     // Verificar se já existe uma categoria com o mesmo nome
     const existingCategory = await db.query.CategoriesTable.findFirst({
@@ -114,10 +190,13 @@ export const createCategory = async (
     });
 
     if (existingCategory) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: "Já existe uma categoria com este nome",
-      });
+      return {
+        success: false,
+        error: {
+          code: "CONFLICT",
+          message: "Já existe uma categoria com este nome",
+        },
+      };
     }
 
     // Criar nova categoria
@@ -132,17 +211,19 @@ export const createCategory = async (
       })
       .returning();
 
-    return newCategory;
+    return {
+      success: true,
+      data: newCategory!,
+    };
   } catch (error) {
     console.error("Erro ao criar categoria:", error);
-    if (error instanceof TRPCError) {
-      throw error;
-    }
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Falha ao criar categoria",
-      cause: error,
-    });
+    return {
+      success: false,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Falha ao criar categoria",
+      },
+    };
   }
 };
 
@@ -150,7 +231,7 @@ export const createCategory = async (
 export const updateCategory = async (
   input: UpdateCategoryInput,
   db: DBClient,
-) => {
+): Promise<UpdateCategoryResponse> => {
   try {
     // Verificar se a categoria existe
     const existingCategory = await db.query.CategoriesTable.findFirst({
@@ -158,10 +239,13 @@ export const updateCategory = async (
     });
 
     if (!existingCategory) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Categoria não encontrada",
-      });
+      return {
+        success: false,
+        error: {
+          code: "NOT_FOUND",
+          message: "Categoria não encontrada",
+        },
+      };
     }
 
     // Se o nome estiver sendo atualizado, verificar se já existe outra categoria com o mesmo nome
@@ -172,10 +256,13 @@ export const updateCategory = async (
       });
 
       if (duplicateCategory) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Já existe outra categoria com este nome",
-        });
+        return {
+          success: false,
+          error: {
+            code: "CONFLICT",
+            message: "Já existe outra categoria com este nome",
+          },
+        };
       }
     }
 
@@ -195,17 +282,19 @@ export const updateCategory = async (
       .where(eq(CategoriesTable.id, input.id))
       .returning();
 
-    return updatedCategory;
+    return {
+      success: true,
+      data: updatedCategory!,
+    };
   } catch (error) {
     console.error("Erro ao atualizar categoria:", error);
-    if (error instanceof TRPCError) {
-      throw error;
-    }
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Falha ao atualizar categoria",
-      cause: error,
-    });
+    return {
+      success: false,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Falha ao atualizar categoria",
+      },
+    };
   }
 };
 
@@ -213,7 +302,7 @@ export const updateCategory = async (
 export const deleteCategory = async (
   input: DeleteCategoryInput,
   db: DBClient,
-) => {
+): Promise<DeleteCategoryResponse> => {
   try {
     // Verificar se a categoria existe
     const existingCategory = await db.query.CategoriesTable.findFirst({
@@ -221,10 +310,13 @@ export const deleteCategory = async (
     });
 
     if (!existingCategory) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Categoria não encontrada",
-      });
+      return {
+        success: false,
+        error: {
+          code: "NOT_FOUND",
+          message: "Categoria não encontrada",
+        },
+      };
     }
 
     // Verificar se existem produtos usando esta categoria
@@ -233,26 +325,31 @@ export const deleteCategory = async (
     });
 
     if (productsUsingCategory) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message:
-          "Não é possível excluir esta categoria porque existem produtos associados a ela",
-      });
+      return {
+        success: false,
+        error: {
+          code: "BAD_REQUEST",
+          message:
+            "Não é possível excluir esta categoria porque existem produtos associados a ela",
+        },
+      };
     }
 
     // Excluir a categoria
     await db.delete(CategoriesTable).where(eq(CategoriesTable.id, input.id));
 
-    return { success: true };
+    return {
+      success: true,
+      data: { success: true },
+    };
   } catch (error) {
     console.error("Erro ao excluir categoria:", error);
-    if (error instanceof TRPCError) {
-      throw error;
-    }
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Falha ao excluir categoria",
-      cause: error,
-    });
+    return {
+      success: false,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Falha ao excluir categoria",
+      },
+    };
   }
 };

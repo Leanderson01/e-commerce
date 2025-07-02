@@ -49,7 +49,7 @@ export function PriceFilters({
               <div className="text-muted-foreground text-sm">
                 Price: ${priceRange[0]} - ${priceRange[1]}
               </div>
-              <div className="text-#A18A68 text-sm font-light">Filter</div>
+              <div className="text-sm font-light text-[#A18A68]">Filter</div>
             </div>
           </div>
         </div>

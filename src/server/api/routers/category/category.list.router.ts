@@ -1,11 +1,13 @@
 import {
   getCategories,
   getCategoryById,
+  getCategoryBySlug,
 } from "~/server/api/funcs/category/category.funcs";
 
 import {
   getCategoriesSchema,
   getCategoryByIdSchema,
+  getCategoryBySlugSchema,
 } from "~/server/api/funcs/category/category.types";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
@@ -15,15 +17,20 @@ export const categoryListRouter = createTRPCRouter({
   getCategories: publicProcedure
     .input(getCategoriesSchema)
     .query(async ({ input, ctx }) => {
-      const result = await getCategories(input, ctx.db);
-      return result;
+      return await getCategories(input, ctx.db);
     }),
 
   // Obter detalhes de uma categoria
   getCategoryById: publicProcedure
     .input(getCategoryByIdSchema)
     .query(async ({ input, ctx }) => {
-      const result = await getCategoryById(input, ctx.db);
-      return result;
+      return await getCategoryById(input, ctx.db);
     }),
-}); 
+
+  // Obter categoria por slug
+  getCategoryBySlug: publicProcedure
+    .input(getCategoryBySlugSchema)
+    .query(async ({ input, ctx }) => {
+      return await getCategoryBySlug(input, ctx.db);
+    }),
+});

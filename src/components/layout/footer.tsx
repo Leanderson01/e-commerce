@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 
 const topLinks = [
@@ -7,12 +8,12 @@ const topLinks = [
   { name: "SHIPPING AND RETURNS", href: "/shipping" },
 ];
 
-// const socialLinks = [
-//   { name: "LinkedIn", href: "#", icon: "linkedin" },
-//   { name: "Facebook", href: "#", icon: "facebook" },
-//   { name: "Instagram", href: "#", icon: "instagram" },
-//   { name: "Twitter", href: "#", icon: "twitter" },
-// ];
+const socialLinks = [
+  { name: "Facebook", href: "#", src: "/icons/face.png" },
+  { name: "Instagram", href: "#", src: "/icons/insta.png" },
+  { name: "Twitter", href: "#", src: "/icons/x.png" },
+  { name: "LinkedIn", href: "#", src: "/icons/mail.png" },
+];
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -69,18 +70,24 @@ export function Footer() {
           </div>
 
           {/* Right - Social Icons (commented for now) */}
-          {/* <div className="flex space-x-4">
+          <div className="flex space-x-4">
             {socialLinks.map((social) => (
               <Link
                 key={social.name}
                 href={social.href}
-                className="transition-colors text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground transition-colors"
                 aria-label={social.name}
               >
-                <span className="w-4 h-4">{social.icon}</span>
+                <Image
+                  src={social.src}
+                  alt={social.name}
+                  width={16}
+                  height={16}
+                  className="h-4 w-4 object-contain"
+                />
               </Link>
             ))}
-          </div> */}
+          </div>
         </div>
       </div>
     </footer>

@@ -81,34 +81,34 @@
 
 **Referência:** https://www.figma.com/design/8knRdcH1dxOOhxPhNasxJb/Ecommerce?node-id=938-4215
 
-- [ ] Layout com filtros laterais
-  - [ ] Filtro por categoria
-  - [ ] Filtro por preço
-  - [ ] Filtro por disponibilidade
-- [ ] Grid de produtos
-  - [ ] Cards responsivos
-  - [ ] Paginação (shadcn/ui)
-  - [ ] Loading states
-- [ ] Integração tRPC
-  - [ ] `category.list.getCategories`
-  - [ ] `product.list.getProducts`
-- [ ] Funcionalidades
-  - [ ] Busca/filtro em tempo real
-  - [ ] Ordenação (preço, nome, data)
+- [x] Layout com filtros laterais
+  - [x] Filtro por categoria
+  - [x] Filtro por preço
+  - [x] Filtro por disponibilidade
+- [x] Grid de produtos
+  - [x] Cards responsivos
+  - [x] Paginação (shadcn/ui)
+  - [x] Loading states
+- [x] Integração tRPC
+  - [x] `category.list.getCategories`
+  - [x] `product.list.getProducts`
+- [x] Funcionalidades
+  - [x] Busca/filtro em tempo real
+  - [x] Ordenação (preço, nome, data)
 
 ### 2.3 Página de Categoria Específica
 
 **Referência:** https://www.figma.com/design/8knRdcH1dxOOhxPhNasxJb/Ecommerce?node-id=938-3075
 
-- [ ] Header da categoria
-  - [ ] Nome e descrição
-  - [ ] Breadcrumb (shadcn/ui)
-- [ ] Grid de produtos da categoria
-  - [ ] Mesmo layout da página geral
-  - [ ] Filtros específicos
-- [ ] Integração tRPC
-  - [ ] `product.list.getProductsByCategory`
-  - [ ] `category.list.getCategoryById`
+- [x] Header da categoria
+  - [x] Nome e descrição
+  - [] Breadcrumb (shadcn/ui)
+- [x] Grid de produtos da categoria
+  - [x] Mesmo layout da página geral
+  - [x] Filtros específicos
+- [x] Integração tRPC
+  - [x] `product.list.getProductsByCategory`
+  - [x] `category.list.getCategoryById`
 
 ### 2.4 Detalhes do Produto
 

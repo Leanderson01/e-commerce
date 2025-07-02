@@ -15,7 +15,12 @@ import { TRPCError } from "@trpc/server";
 
 // Verificação para permissão de admin
 const isAdmin = (ctx: Record<string, unknown>) => {
-  if (!ctx.user || typeof ctx.user !== 'object' || !('role' in ctx.user) || ctx.user.role !== "admin") {
+  if (
+    !ctx.user ||
+    typeof ctx.user !== "object" ||
+    !("role" in ctx.user) ||
+    ctx.user.role !== "admin"
+  ) {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Apenas administradores podem realizar esta operação",
@@ -29,23 +34,23 @@ export const categoryFormRouter = createTRPCRouter({
   createCategory: protectedProcedure
     .input(createCategorySchema)
     .mutation(async ({ input, ctx }) => {
-      const result = await createCategory(input, ctx.db);
-      return result;
+      isAdmin(ctx);
+      return await createCategory(input, ctx.db);
     }),
 
   // Atualizar categoria (admin)
   updateCategory: protectedProcedure
     .input(updateCategorySchema)
     .mutation(async ({ input, ctx }) => {
-      const result = await updateCategory(input, ctx.db);
-      return result;
+      isAdmin(ctx);
+      return await updateCategory(input, ctx.db);
     }),
 
   // Remover categoria (admin)
   deleteCategory: protectedProcedure
     .input(deleteCategorySchema)
     .mutation(async ({ input, ctx }) => {
-      const result = await deleteCategory(input, ctx.db);
-      return result;
+      isAdmin(ctx);
+      return await deleteCategory(input, ctx.db);
     }),
-}); 
+});

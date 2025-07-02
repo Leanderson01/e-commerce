@@ -79,23 +79,25 @@ export const getProductById = async (
     });
 
     if (!product) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "Produto não encontrado",
-      });
+      return {
+        success: false,
+        error: "Product not found",
+        data: null,
+      };
     }
 
-    return product;
+    return {
+      success: true,
+      error: null,
+      data: product,
+    };
   } catch (error) {
     console.error("Erro ao buscar produto:", error);
-    if (error instanceof TRPCError) {
-      throw error;
-    }
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Falha ao buscar o produto",
-      cause: error,
-    });
+    return {
+      success: false,
+      error: "Failed to fetch product",
+      data: null,
+    };
   }
 };
 

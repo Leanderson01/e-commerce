@@ -29,7 +29,7 @@ export function CategoryFilters({
     return <Skeleton className="h-10 w-full" />;
   }
 
-  if (!categories?.categories.length) {
+  if (!categories?.data?.categories.length) {
     return (
       <Select disabled>
         <SelectTrigger>
@@ -51,7 +51,7 @@ export function CategoryFilters({
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="all">All Categories</SelectItem>
-        {categories.categories.map((category) => (
+        {categories?.data?.categories.map((category) => (
           <SelectItem key={category.id} value={category.id}>
             {category.name}
           </SelectItem>

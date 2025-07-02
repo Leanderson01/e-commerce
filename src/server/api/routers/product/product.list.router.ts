@@ -25,8 +25,7 @@ export const productListRouter = createTRPCRouter({
   getProductById: publicProcedure
     .input(getProductByIdSchema)
     .query(async ({ input, ctx }) => {
-      const result = await getProductById(input, ctx.db);
-      return result;
+      return await getProductById(input, ctx.db);
     }),
 
   // Listar produtos por categoria
