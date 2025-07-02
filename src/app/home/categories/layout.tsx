@@ -1,11 +1,9 @@
-import { api } from "~/trpc/server";
+import { AdminRoute } from "~/components/auth";
 
-export default async function CategoriesLayout({
+export default function CategoriesLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await api.auth.user.getUserLogged();
-
-  return <div>{children}</div>;
+  return <AdminRoute>{children}</AdminRoute>;
 }

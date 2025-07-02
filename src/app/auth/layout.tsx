@@ -1,23 +1,24 @@
 import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: {
-    template: "%s | E-commerce",
-    default: "Login | E-commerce",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+import { MainLayout } from "~/components/layout";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+export const metadata: Metadata = {
+  title: "E-commerce - Auth",
+  description: "E-commerce - Auth",
+};
 
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <MainLayout>
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+        {children}
+      </div>
+    </MainLayout>
+  );
 }
