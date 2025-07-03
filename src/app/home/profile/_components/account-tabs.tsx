@@ -8,9 +8,38 @@ import { LogoutButton } from "./logout-button";
 import { api } from "~/trpc/react";
 import { ManageCategories } from "./manage-categories";
 import { ManageProducts } from "./manage-products";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useMemo, useCallback } from "react";
 
 export function AccountTabs() {
   const { data: user, isLoading } = api.auth.user.getUserLogged.useQuery();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Get the tab from URL search params, default to "dashboard"
+  const activeTab = useMemo(() => {
+    const tabParam = searchParams.get("tab");
+    return tabParam ?? "dashboard";
+  }, [searchParams]);
+
+  // Handle tab change
+  const handleTabChange = useCallback(
+    (value: string) => {
+      const params = new URLSearchParams(searchParams);
+      if (value === "dashboard") {
+        params.delete("tab");
+      } else {
+        params.set("tab", value);
+      }
+
+      const queryString = params.toString();
+      const newUrl = queryString
+        ? `/home/profile?${queryString}`
+        : "/home/profile";
+      router.push(newUrl);
+    },
+    [searchParams, router],
+  );
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -19,7 +48,7 @@ export function AccountTabs() {
   const isAdmin = user?.role === "admin";
 
   return (
-    <Tabs defaultValue="dashboard" className="w-full">
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       <div className="border-b border-gray-200 dark:border-gray-700">
         <TabsList className="flex h-auto w-full items-center justify-start bg-transparent p-0">
           <TabsTrigger

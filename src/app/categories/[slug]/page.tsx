@@ -66,7 +66,7 @@ export default function CategoryPage({ params }: CategoryPageProps) {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-24 py-8">
+    <div className="mx-auto px-24 py-8">
       {/* Header da categoria */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold">{categoryData?.data?.name}</h1>
