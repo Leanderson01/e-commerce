@@ -83,6 +83,20 @@ export default function ProductPage({ params }: ProductPageProps) {
     }
   };
 
+  // Handle direct input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = parseInt(e.target.value, 10);
+    if (Number.isNaN(val)) val = 1;
+    if (val < 1) val = 1;
+    if (val > (productData?.data?.stockQuantity ?? 0))
+      val = productData?.data?.stockQuantity ?? 0;
+    setQuantity(val);
+  };
+
+  const selectAll = (e: React.SyntheticEvent<HTMLInputElement>) => {
+    e.currentTarget.select();
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -231,9 +245,9 @@ export default function ProductPage({ params }: ProductPageProps) {
             {isInStock && (
               <div className="flex flex-row items-center space-x-4">
                 {/* Quantity Selector */}
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center rounded bg-[#EFEFEF] px-2">
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
                     onClick={() => handleQuantityChange("decrease")}
                     disabled={quantity <= 1}
@@ -243,11 +257,15 @@ export default function ProductPage({ params }: ProductPageProps) {
                   <input
                     type="number"
                     value={quantity}
-                    readOnly
-                    className="h-10 w-12 text-center text-sm"
+                    onChange={handleInputChange}
+                    onFocus={selectAll}
+                    onClick={selectAll}
+                    min={1}
+                    max={maxQuantity}
+                    className="h-10 w-12 appearance-none bg-transparent text-center text-sm focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
                     onClick={() => handleQuantityChange("increase")}
                     disabled={quantity >= maxQuantity}
