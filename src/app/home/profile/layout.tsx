@@ -1,5 +1,6 @@
 import { type Metadata } from "next";
 import { Suspense } from "react";
+import { ProtectedRoute } from "~/components/auth";
 import { api, HydrateClient } from "~/trpc/server";
 
 export const metadata: Metadata = {
@@ -16,7 +17,9 @@ export default async function ProfileLayout({
 
   return (
     <HydrateClient>
-      <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+      <ProtectedRoute>
+        <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+      </ProtectedRoute>
     </HydrateClient>
   );
 }

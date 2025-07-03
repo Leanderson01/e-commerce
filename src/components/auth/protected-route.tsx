@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { unauthorized, notFound, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { api } from "~/trpc/react";
@@ -40,7 +40,7 @@ export function ProtectedRoute({
   }
 
   if (!user || error) {
-    return null;
+    return unauthorized();
   }
 
   return <>{children}</>;

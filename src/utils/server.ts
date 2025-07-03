@@ -26,6 +26,19 @@ export async function createSBServer() {
           }
         },
       },
+      global: {
+        headers: {
+          "x-application-name": "e-commerce-app",
+        },
+      },
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+      },
+      db: {
+        schema: "public",
+      },
     },
   );
 }
@@ -52,6 +65,19 @@ export async function createSBAdminServer() {
             // user sessions.
           }
         },
+      },
+      global: {
+        headers: {
+          "x-application-name": "e-commerce-app-admin",
+        },
+      },
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+      },
+      db: {
+        schema: "public",
       },
     },
   );
