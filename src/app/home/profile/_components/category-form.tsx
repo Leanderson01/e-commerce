@@ -12,9 +12,15 @@ interface CategoryFormProps {
   form: ReturnType<typeof useForm>;
   isLoading?: boolean;
   isEdit?: boolean;
+  existingBannerUrl?: string;
 }
 
-export function CategoryForm({ form, isLoading, isEdit }: CategoryFormProps) {
+export function CategoryForm({
+  form,
+  isLoading,
+  isEdit,
+  existingBannerUrl,
+}: CategoryFormProps) {
   return (
     <div className="mb-28 space-y-28">
       {/* Header Section */}
@@ -110,6 +116,7 @@ export function CategoryForm({ form, isLoading, isEdit }: CategoryFormProps) {
                 multiple={false}
                 onImagesChange={(files) => field.handleChange(files[0])}
                 className="w-full"
+                initialImageUrl={existingBannerUrl}
               />
               {field.state.meta.errors && (
                 <p className="text-sm text-red-600 dark:text-red-400">

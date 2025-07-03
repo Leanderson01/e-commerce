@@ -17,20 +17,20 @@ export const categoryListRouter = createTRPCRouter({
   getCategories: publicProcedure
     .input(getCategoriesSchema)
     .query(async ({ input, ctx }) => {
-      return await getCategories(input, ctx.db);
+      return await getCategories(input, ctx.db, ctx.supabase);
     }),
 
   // Obter detalhes de uma categoria
   getCategoryById: publicProcedure
     .input(getCategoryByIdSchema)
     .query(async ({ input, ctx }) => {
-      return await getCategoryById(input, ctx.db);
+      return await getCategoryById(input, ctx.db, ctx.supabase);
     }),
 
   // Obter categoria por slug
   getCategoryBySlug: publicProcedure
     .input(getCategoryBySlugSchema)
     .query(async ({ input, ctx }) => {
-      return await getCategoryBySlug(input, ctx.db);
+      return await getCategoryBySlug(input, ctx.db, ctx.supabase);
     }),
 });

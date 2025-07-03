@@ -2,12 +2,14 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  uploadCategoryBanner,
 } from "~/server/api/funcs/category/category.funcs";
 
 import {
   createCategorySchema,
   updateCategorySchema,
   deleteCategorySchema,
+  uploadCategoryBannerSchema,
 } from "~/server/api/funcs/category/category.types";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
@@ -52,5 +54,13 @@ export const categoryFormRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       isAdmin(ctx);
       return await deleteCategory(input, ctx.db);
+    }),
+
+  // Upload banner da categoria (admin)
+  uploadCategoryBanner: protectedProcedure
+    .input(uploadCategoryBannerSchema)
+    .mutation(async ({ input, ctx }) => {
+      isAdmin(ctx);
+      return await uploadCategoryBanner(input, ctx.db, ctx.supabase);
     }),
 });

@@ -21,7 +21,6 @@ export const getCategoryBySlugSchema = z.object({
 export const createCategorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
   description: z.string().optional(),
-  banner: z.instanceof(File).optional(),
 });
 
 // Schema para atualizar uma categoria
@@ -29,12 +28,18 @@ export const updateCategorySchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1, "Category name is required").optional(),
   description: z.string().optional(),
-  banner: z.instanceof(File).optional(),
 });
 
 // Schema para excluir uma categoria
 export const deleteCategorySchema = z.object({
   id: z.string().uuid(),
+});
+
+// Schema para upload de banner de categoria
+export const uploadCategoryBannerSchema = z.object({
+  id: z.string().uuid(),
+  imageData: z.string(), // base64
+  filename: z.string(),
 });
 
 // Tipos inferidos dos schemas
@@ -44,6 +49,9 @@ export type GetCategoryBySlugInput = z.infer<typeof getCategoryBySlugSchema>;
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 export type DeleteCategoryInput = z.infer<typeof deleteCategorySchema>;
+export type UploadCategoryBannerInput = z.infer<
+  typeof uploadCategoryBannerSchema
+>;
 
 // Tipos de resposta com pattern success/error
 export type ApiResponse<T> =
@@ -66,6 +74,7 @@ export type GetCategoryBySlugResponse = ApiResponse<{
   id: string;
   name: string;
   description: string | null;
+  bannerUrl: string;
   createdAt: Date;
   updatedAt: Date;
   productCount: number;
@@ -76,6 +85,7 @@ export type GetCategoryByIdResponse = ApiResponse<{
   id: string;
   name: string;
   description: string | null;
+  bannerUrl: string;
   createdAt: Date;
   updatedAt: Date;
   productCount: number;
@@ -87,6 +97,7 @@ export type GetCategoriesResponse = ApiResponse<{
     id: string;
     name: string;
     description: string | null;
+    bannerUrl: string;
     createdAt: Date;
     updatedAt: Date;
   }>;
@@ -115,4 +126,10 @@ export type UpdateCategoryResponse = ApiResponse<{
 
 export type DeleteCategoryResponse = ApiResponse<{
   success: boolean;
+}>;
+
+export type UploadCategoryBannerResponse = ApiResponse<{
+  id: string;
+  bannerUrl: string;
+  uploadedAt: Date;
 }>;

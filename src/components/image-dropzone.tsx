@@ -1,7 +1,6 @@
 "use client";
 
-import type React from "react";
-import { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Upload, X } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -12,6 +11,7 @@ interface ImageDropzoneProps {
   onImagesChange?: (files: File[]) => void;
   maxFiles?: number;
   className?: string;
+  initialImageUrl?: string;
 }
 
 export function ImageDropzone({
@@ -19,10 +19,19 @@ export function ImageDropzone({
   onImagesChange,
   maxFiles = 10,
   className,
+  initialImageUrl,
 }: ImageDropzoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [hasInitialImage, setHasInitialImage] = useState(!!initialImageUrl);
+
+  // Initialize with existing image if provided
+  useEffect(() => {
+    if (initialImageUrl && hasInitialImage) {
+      setPreviews([initialImageUrl]);
+    }
+  }, [initialImageUrl, hasInitialImage]);
 
   const handleFiles = useCallback(
     (files: FileList) => {
@@ -45,18 +54,26 @@ export function ImageDropzone({
         newPreviews = [...previews, ...previewsToAdd];
       } else {
         // Single mode: replace existing image
-        if (previews.length > 0) {
+        if (previews.length > 0 && !hasInitialImage) {
           previews.forEach((preview) => URL.revokeObjectURL(preview));
         }
         newImages = imageFiles.slice(0, 1);
         newPreviews = newImages.map((file) => URL.createObjectURL(file));
+        setHasInitialImage(false); // Clear initial image flag when new file is selected
       }
 
       setSelectedImages(newImages);
       setPreviews(newPreviews);
       onImagesChange?.(newImages);
     },
-    [selectedImages, previews, multiple, maxFiles, onImagesChange],
+    [
+      selectedImages,
+      previews,
+      multiple,
+      maxFiles,
+      onImagesChange,
+      hasInitialImage,
+    ],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -97,24 +114,35 @@ export function ImageDropzone({
       const newImages = selectedImages.filter((_, i) => i !== index);
       const newPreviews = previews.filter((_, i) => i !== index);
 
-      // Revoke the URL to free memory
-      if (previews[index]) {
+      // Revoke the URL to free memory (only for blob URLs, not initial image URLs)
+      if (previews[index] && !hasInitialImage) {
         URL.revokeObjectURL(previews[index]);
+      }
+
+      // If removing the initial image, clear the flag
+      if (index === 0 && hasInitialImage) {
+        setHasInitialImage(false);
       }
 
       setSelectedImages(newImages);
       setPreviews(newPreviews);
       onImagesChange?.(newImages);
     },
-    [selectedImages, previews, onImagesChange],
+    [selectedImages, previews, onImagesChange, hasInitialImage],
   );
 
   const clearAll = useCallback(() => {
-    previews.forEach((preview) => URL.revokeObjectURL(preview));
+    // Only revoke blob URLs, not initial image URLs
+    previews.forEach((preview) => {
+      if (!hasInitialImage || preview !== initialImageUrl) {
+        URL.revokeObjectURL(preview);
+      }
+    });
     setSelectedImages([]);
     setPreviews([]);
+    setHasInitialImage(false);
     onImagesChange?.([]);
-  }, [previews, onImagesChange]);
+  }, [previews, onImagesChange, hasInitialImage, initialImageUrl]);
 
   return (
     <div className={cn("w-full", className)}>
@@ -170,21 +198,26 @@ export function ImageDropzone({
       </div>
 
       {/* Preview Grid */}
-      {selectedImages.length > 0 && (
+      {previews.length > 0 && (
         <div className="mt-6">
           <div className="mb-4 flex items-center justify-between">
             <h4 className="text-sm font-medium text-gray-900">
               Selected{" "}
-              {multiple ? `Images (${selectedImages.length})` : "Image"}
+              {multiple
+                ? `Images (${previews.length})`
+                : previews.length > 0
+                  ? "Image"
+                  : ""}
             </h4>
-            {multiple && selectedImages.length > 1 && (
+            {((multiple && previews.length > 1) ||
+              (!multiple && previews.length > 0)) && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={clearAll}
                 className="bg-transparent text-xs"
               >
-                Clear All
+                Clear {multiple ? "All" : ""}
               </Button>
             )}
           </div>
@@ -222,7 +255,9 @@ export function ImageDropzone({
 
                 <div className="absolute right-1 bottom-1 left-1">
                   <div className="truncate rounded bg-black/50 px-2 py-1 text-xs text-white">
-                    {selectedImages[index]?.name}
+                    {hasInitialImage && index === 0
+                      ? "Current banner"
+                      : selectedImages[index]?.name}
                   </div>
                 </div>
               </div>

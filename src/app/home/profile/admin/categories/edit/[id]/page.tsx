@@ -7,6 +7,7 @@ import { api } from "~/trpc/react";
 import { toast } from "sonner";
 import { CategoryForm } from "~/app/home/profile/_components/category-form";
 import { Loader2 } from "lucide-react";
+import { fileToBase64 } from "~/lib/utils";
 
 interface EditCategoryPageProps {
   params: Promise<{
@@ -24,8 +25,25 @@ export default function EditCategoryPage({ params }: EditCategoryPageProps) {
     api.category.list.getCategoryById.useQuery({ id });
 
   const updateCategory = api.category.form.updateCategory.useMutation({
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       if (response.success) {
+        const bannerFile = form.state.values.banner;
+
+        // Upload banner if provided
+        if (bannerFile) {
+          try {
+            const imageData = await fileToBase64(bannerFile);
+            await uploadBanner.mutateAsync({
+              id,
+              imageData,
+              filename: bannerFile.name.split(".")[0] ?? "banner",
+            });
+          } catch (error) {
+            console.error("Failed to upload banner:", error);
+            toast.warning("Category updated but banner upload failed");
+          }
+        }
+
         toast.success("Category updated successfully!");
         void utils.category.list.invalidate();
         router.push("/home/profile?tab=manage-categories");
@@ -38,6 +56,8 @@ export default function EditCategoryPage({ params }: EditCategoryPageProps) {
     },
   });
 
+  const uploadBanner = api.category.form.uploadCategoryBanner.useMutation();
+
   const form = useForm({
     defaultValues: {
       name: "",
@@ -49,7 +69,6 @@ export default function EditCategoryPage({ params }: EditCategoryPageProps) {
         id,
         name: value.name,
         description: value.description || undefined,
-        banner: value.banner,
       });
     },
   });
@@ -90,8 +109,9 @@ export default function EditCategoryPage({ params }: EditCategoryPageProps) {
     <div className="mt-16 max-w-4xl px-24">
       <CategoryForm
         form={form as unknown as ReturnType<typeof useForm>}
-        isLoading={updateCategory.isPending}
+        isLoading={updateCategory.isPending || uploadBanner.isPending}
         isEdit={true}
+        existingBannerUrl={categoryResponse.data.bannerUrl}
       />
     </div>
   );
