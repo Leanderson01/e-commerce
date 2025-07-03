@@ -12,7 +12,6 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { db } from "~/server/db/src/client";
-import { UsersTable } from "~/server/db/src/schema/user";
 
 /**
  * 1. CONTEXT

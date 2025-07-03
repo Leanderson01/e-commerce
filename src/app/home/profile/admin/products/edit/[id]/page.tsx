@@ -7,7 +7,7 @@ import { api } from "~/trpc/react";
 import { toast } from "sonner";
 import { ProductForm } from "~/app/home/profile/_components/product-form";
 import { Loader2 } from "lucide-react";
-import { fileToBase64 } from "~/lib/utils";
+import { fileToBase64 } from "~/lib/file-utils";
 
 interface EditProductPageProps {
   params: Promise<{

@@ -2,7 +2,7 @@ import type { DBClient } from "~/server/db/src/client";
 import { CategoriesTable } from "~/server/db/src/schema/category";
 import { ProductsTable } from "~/server/db/src/schema/product";
 import { v7 as uuidv7 } from "uuid";
-import { eq, desc, asc, sql, ilike } from "drizzle-orm";
+import { eq, desc, asc, sql } from "drizzle-orm";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   GetCategoriesInput,
@@ -20,7 +20,6 @@ import type {
   DeleteCategoryResponse,
   UploadCategoryBannerResponse,
 } from "./category.types";
-import { TRPCError } from "@trpc/server";
 
 // Listar todas as categorias
 export const getCategories = async (

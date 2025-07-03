@@ -5,7 +5,7 @@ import { useForm } from "@tanstack/react-form";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
 import { CategoryForm } from "~/app/home/profile/_components/category-form";
-import { fileToBase64 } from "~/lib/utils";
+import { fileToBase64 } from "~/lib/file-utils";
 
 export default function CreateCategoryPage() {
   const router = useRouter();

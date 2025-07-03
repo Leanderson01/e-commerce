@@ -1,7 +1,6 @@
 import { type SupabaseClient } from "@supabase/supabase-js";
 import type { DBClient } from "~/server/db/src/client";
 import { ProductsTable } from "~/server/db/src/schema/product";
-import { CategoriesTable } from "~/server/db/src/schema/category";
 import { v7 as uuidv7 } from "uuid";
 import { eq, gt, and, desc, asc, sql } from "drizzle-orm";
 import type {

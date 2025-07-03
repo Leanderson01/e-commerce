@@ -1,7 +1,6 @@
 import type { DBClient } from "~/server/db/src/client";
 import { CartsTable } from "~/server/db/src/schema/cart/cart.table";
 import { CartItemsTable } from "~/server/db/src/schema/cart/cart-item.table";
-import { UsersTable } from "~/server/db/src/schema/user/user.table";
 import { v7 as uuidv7 } from "uuid";
 import { eq } from "drizzle-orm";
 import type {

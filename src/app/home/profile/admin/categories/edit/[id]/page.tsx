@@ -7,7 +7,7 @@ import { api } from "~/trpc/react";
 import { toast } from "sonner";
 import { CategoryForm } from "~/app/home/profile/_components/category-form";
 import { Loader2 } from "lucide-react";
-import { fileToBase64 } from "~/lib/utils";
+import { fileToBase64 } from "~/lib/file-utils";
 
 interface EditCategoryPageProps {
   params: Promise<{
