@@ -19,15 +19,17 @@ export const getCategoryBySlugSchema = z.object({
 
 // Schema para criar uma nova categoria
 export const createCategorySchema = z.object({
-  name: z.string().min(1, "Nome da categoria é obrigatório"),
+  name: z.string().min(1, "Category name is required"),
   description: z.string().optional(),
+  banner: z.instanceof(File).optional(),
 });
 
 // Schema para atualizar uma categoria
 export const updateCategorySchema = z.object({
   id: z.string().uuid(),
-  name: z.string().min(1, "Nome da categoria é obrigatório").optional(),
+  name: z.string().min(1, "Category name is required").optional(),
   description: z.string().optional(),
+  banner: z.instanceof(File).optional(),
 });
 
 // Schema para excluir uma categoria

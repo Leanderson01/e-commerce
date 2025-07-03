@@ -47,7 +47,7 @@ const userMenuItems = [
   { name: "Orders", href: "/home/orders", icon: Package as React.ElementType },
   {
     name: "Settings",
-    href: "/home/settings",
+    href: "/home/profile?tab=account-details",
     icon: Settings as React.ElementType,
   },
 ];
@@ -55,17 +55,17 @@ const userMenuItems = [
 const adminMenuItems = [
   {
     name: "Admin Dashboard",
-    href: "/admin/dashboard",
+    href: "/home/profile?tab=dashboard",
     icon: BarChart3 as React.ElementType,
   },
   {
     name: "Manage Products",
-    href: "/admin/products",
+    href: "/home/profile?tab=manage-products",
     icon: Package as React.ElementType,
   },
   {
     name: "Manage Categories",
-    href: "/admin/categories",
+    href: "/home/profile?tab=manage-categories",
     icon: Settings as React.ElementType,
   },
 ];

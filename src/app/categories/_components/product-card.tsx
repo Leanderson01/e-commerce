@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card, CardContent } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { toast } from "sonner";
 
 interface Product {
   id: string;
@@ -91,7 +92,13 @@ export function ProductCard({ product }: ProductCardProps) {
               <Link href={`/products/${product.id}`}>View Details</Link>
             </Button>
 
-            <Button className="flex-1" disabled={!isInStock}>
+            <Button
+              className="flex-1"
+              disabled={!isInStock}
+              onClick={() => {
+                toast.info("Add to cart functionality coming soon!");
+              }}
+            >
               Add to Cart
             </Button>
           </div>

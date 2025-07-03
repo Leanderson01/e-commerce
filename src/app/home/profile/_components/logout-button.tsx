@@ -21,6 +21,7 @@ export function LogoutButton() {
   const router = useRouter();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [password, setPassword] = useState("");
+  const utils = api.useUtils();
 
   const logout = api.auth.form.logout.useMutation({
     onSuccess: () => {

@@ -114,15 +114,15 @@
 
 **Referência:** https://www.figma.com/design/8knRdcH1dxOOhxPhNasxJb/Ecommerce?node-id=739-20512
 
-- [ ] Layout do produto
-  - [ ] Galeria de imagens
-  - [ ] Informações principais
-  - [ ] Preço e disponibilidade
-  - [ ] Descrição detalhada
-- [ ] Funcionalidades de compra
-  - [ ] Seletor de quantidade
-  - [ ] Botão "Adicionar ao Carrinho"
-  - [ ] Verificação de estoque
+- [x] Layout do produto
+  - [x] Galeria de imagens
+  - [x] Informações principais
+  - [x] Preço e disponibilidade
+  - [x] Descrição detalhada
+- [x] Funcionalidades de compra
+  - [x] Seletor de quantidade
+  - [x] Botão "Adicionar ao Carrinho"
+  - [x] Verificação de estoque
 - [ ] Integração tRPC
   - [ ] `product.list.getProductById`
   - [ ] `cart.form.addToCart`
@@ -232,7 +232,25 @@
   - [ ] `product.form.deleteProduct`
   - [ ] `product.form.uploadProductImage`
 
-### 4.3 Adicionar/Editar Produtos e Categorias
+### 4.3 Gerenciar Categorias
+
+**Referência:** https://www.figma.com/design/8knRdcH1dxOOhxPhNasxJb/Ecommerce?node-id=938-6208
+
+- [ ] Lista de categorias
+  - [ ] Table com ações (shadcn/ui)
+  - [ ] Busca e filtros
+  - [ ] Paginação
+- [ ] CRUD Categorias
+  - [ ] Criar categoria
+  - [ ] Editar categoria
+  - [ ] Deletar categoria
+- [ ] Integração tRPC
+  - [ ] `category.list.getCategories`
+  - [ ] `category.form.createCategory`
+  - [ ] `category.form.updateCategory`
+  - [ ] `category.form.deleteCategory`
+
+### 4.4 Adicionar/Editar Produtos e Categorias
 
 **Referência:** https://www.figma.com/design/8knRdcH1dxOOhxPhNasxJb/Ecommerce?node-id=962-1737
 
