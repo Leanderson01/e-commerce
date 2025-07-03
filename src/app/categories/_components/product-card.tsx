@@ -2,10 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Card, CardContent } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { toast } from "sonner";
+import { ShoppingCart, Eye, Heart } from "lucide-react";
 
 interface Product {
   id: string;
@@ -30,80 +30,86 @@ export function ProductCard({ product }: ProductCardProps) {
   const isInStock = product.stockQuantity && product.stockQuantity > 0;
 
   return (
-    <Card className="group overflow-hidden">
-      <CardContent className="p-0">
-        {/* Product Image */}
-        <div className="relative aspect-square overflow-hidden">
-          {product.imageUrl ? (
-            <Image
-              src={product.imageUrl}
-              alt={product.name}
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gray-100">
-              <span className="text-gray-400">No Image</span>
-            </div>
-          )}
-
-          {/* Stock Badge */}
-          {!isInStock && (
-            <Badge variant="secondary" className="absolute top-2 right-2">
-              Out of Stock
-            </Badge>
-          )}
-        </div>
-
-        {/* Product Info */}
-        <div className="space-y-3 p-4">
-          {/* Category */}
-          {product._category && (
-            <p className="text-muted-foreground text-xs tracking-wide uppercase">
-              {product._category.name}
-            </p>
-          )}
-
-          {/* Product Name */}
-          <h3 className="line-clamp-2 font-semibold">{product.name}</h3>
-
-          {/* Description */}
-          {product.description && (
-            <p className="text-muted-foreground line-clamp-2 text-sm">
-              {product.description}
-            </p>
-          )}
-
-          {/* Price */}
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-bold">${price.toFixed(2)}</span>
-
-            {/* Stock Info */}
-            {isInStock && (
-              <span className="text-muted-foreground text-xs">
-                {product.stockQuantity} in stock
-              </span>
-            )}
+    <div className="group relative overflow-hidden">
+      {/* Product Image */}
+      <div className="relative aspect-square overflow-hidden bg-gray-50">
+        {product.imageUrl ? (
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gray-100">
+            <span className="text-gray-400">No Image</span>
           </div>
+        )}
 
-          {/* Action Buttons */}
-          <div className="flex space-x-2">
-            <Button asChild variant="outline" className="flex-1">
-              <Link href={`/products/${product.id}`}>View Details</Link>
-            </Button>
+        {/* Stock Badge */}
+        {!isInStock && (
+          <Badge variant="secondary" className="absolute top-2 right-2">
+            Out of Stock
+          </Badge>
+        )}
 
-            <Button
-              className="flex-1"
-              disabled={!isInStock}
-              onClick={() => {
-                toast.info("Add to cart functionality coming soon!");
-              }}
-            >
-              Add to Cart
-            </Button>
-          </div>
+        {/* Action Buttons - Visible on Hover */}
+        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-10 w-10 rounded-full bg-white hover:bg-gray-100"
+            disabled={!isInStock}
+            onClick={() => {
+              toast.info("Add to cart functionality coming soon!");
+            }}
+          >
+            <ShoppingCart className="h-4 w-4" />
+          </Button>
+
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-10 w-10 rounded-full bg-white hover:bg-gray-100"
+            asChild
+          >
+            <Link href={`/products/${product.id}`}>
+              <Eye className="h-4 w-4" />
+            </Link>
+          </Button>
+
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-10 w-10 rounded-full bg-white hover:bg-gray-100"
+            onClick={() => {
+              toast.info("Add to favorites functionality coming soon!");
+            }}
+          >
+            <Heart className="h-4 w-4" />
+          </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Product Info */}
+      <div className="space-y-2 pt-3">
+        {/* Product Name */}
+        <h3 className="line-clamp-2 text-sm font-medium text-gray-900">
+          {product.name}
+        </h3>
+
+        {/* Price */}
+        <div className="font-semibold text-[#A18A68]">${price.toFixed(2)}</div>
+
+        {/* Stock Info */}
+        {isInStock ? (
+          <div className="text-xs text-gray-500">
+            {product.stockQuantity} in stock
+          </div>
+        ) : (
+          <div className="text-xs text-red-500">Out of stock</div>
+        )}
+      </div>
+    </div>
   );
 }

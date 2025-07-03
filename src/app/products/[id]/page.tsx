@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
 import {
@@ -14,14 +13,7 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
-import {
-  Minus,
-  Plus,
-  ShoppingCart,
-  ArrowLeft,
-  Heart,
-  Star,
-} from "lucide-react";
+import { Minus, Plus, ShoppingCart, ArrowLeft, Heart } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProductPageProps {
@@ -151,43 +143,11 @@ export default function ProductPage({ params }: ProductPageProps) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      {/* Breadcrumb */}
-      <nav className="mb-6">
-        <ol className="text-muted-foreground flex items-center space-x-2 text-sm">
-          <li>
-            <Link href="/" className="hover:text-foreground">
-              Home
-            </Link>
-          </li>
-          <li>/</li>
-          <li>
-            <Link href="/categories" className="hover:text-foreground">
-              Categories
-            </Link>
-          </li>
-          {product._category && (
-            <>
-              <li>/</li>
-              <li>
-                <Link
-                  href={`/categories/${product._category.name.toLowerCase().replace(/\s+/g, "-")}`}
-                  className="hover:text-foreground"
-                >
-                  {product._category.name}
-                </Link>
-              </li>
-            </>
-          )}
-          <li>/</li>
-          <li className="text-foreground font-medium">{product.name}</li>
-        </ol>
-      </nav>
-
       {/* Main Content */}
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
         {/* Product Images */}
         <div className="space-y-4">
-          <div className="relative aspect-square overflow-hidden rounded-lg border">
+          <div className="relative aspect-square overflow-hidden rounded-lg">
             {product.imageUrl ? (
               <Image
                 src={product.imageUrl}
@@ -225,13 +185,6 @@ export default function ProductPage({ params }: ProductPageProps) {
 
           {/* Product Details part 2 */}
           <div className="space-y-6">
-            {/* Stars */}
-            <div className="flex items-center space-x-1">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="h-5 w-5 fill-black text-black" />
-              ))}
-            </div>
-
             {/* Description */}
             {product.description && (
               <div>
@@ -310,14 +263,12 @@ export default function ProductPage({ params }: ProductPageProps) {
             <div className="mt-6 space-y-1 text-sm">
               <p>
                 <span className="text-muted-foreground">SKU:</span>{" "}
-                {product.id.slice(-8).toUpperCase()}
+                {product.stockQuantity} in stock
               </p>
-              {product._category && (
-                <p>
-                  <span className="text-muted-foreground">Categories:</span>{" "}
-                  {product._category.name}
-                </p>
-              )}
+              <p>
+                <span className="text-muted-foreground">Category:</span>{" "}
+                {product._category?.name}
+              </p>
             </div>
           </div>
         </div>

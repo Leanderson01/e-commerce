@@ -1,6 +1,7 @@
 import { type SupabaseClient } from "@supabase/supabase-js";
 import type { DBClient } from "~/server/db/src/client";
 import { ProductsTable } from "~/server/db/src/schema/product";
+import { CategoriesTable } from "~/server/db/src/schema/category";
 import { v7 as uuidv7 } from "uuid";
 import { eq, gt, and, desc, asc, sql } from "drizzle-orm";
 import type {
@@ -444,11 +445,11 @@ export const uploadProductImage = async (
     // Definir extensão do arquivo
     const fileExtension = contentType?.split("/")[1] ?? "png";
     const fileName = `${input.filename}-${Date.now()}.${fileExtension}`;
-    const filePath = `produtos/${fileName}`;
+    const filePath = `${fileName}`;
 
     // Fazer upload para o Supabase
     const { data, error } = await supabase.storage
-      .from("product-images")
+      .from("products-banner")
       .upload(filePath, buffer, {
         contentType,
         upsert: true,
@@ -464,7 +465,7 @@ export const uploadProductImage = async (
 
     // Obter URL pública da imagem
     const { data: urlData } = supabase.storage
-      .from("product-images")
+      .from("products-banner")
       .getPublicUrl(filePath);
 
     // Atualizar URL da imagem no produto

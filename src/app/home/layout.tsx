@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { ProtectedRoute } from "~/components/auth";
+import { MainLayout } from "~/components/layout";
 
 export default function HomeLayout({
   children,
@@ -8,7 +9,9 @@ export default function HomeLayout({
 }) {
   return (
     <ProtectedRoute>
-      <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+      <Suspense fallback={<div>Loading...</div>}>
+        <MainLayout>{children}</MainLayout>
+      </Suspense>
     </ProtectedRoute>
   );
 }

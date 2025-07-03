@@ -109,11 +109,10 @@ export function Header() {
     <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 mt-12 w-full border-b backdrop-blur">
       <div className="mx-auto flex h-16 items-center justify-between px-24">
         {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2">
-          <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg">
-            <span className="text-primary-foreground text-lg font-bold">E</span>
-          </div>
-          <span className="text-xl font-bold">E-commerce</span>
+        <Link href="/home" className="flex items-center space-x-2">
+          <p className="text-[40px] font-bold">
+            <span className="font-normal text-[#A18A68]">i</span>SHOP
+          </p>
         </Link>
 
         {/* Navigation + Actions Container */}

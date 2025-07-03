@@ -7,6 +7,7 @@ import { ComingSoon } from "./coming-soon";
 import { LogoutButton } from "./logout-button";
 import { api } from "~/trpc/react";
 import { ManageCategories } from "./manage-categories";
+import { ManageProducts } from "./manage-products";
 
 export function AccountTabs() {
   const { data: user, isLoading } = api.auth.user.getUserLogged.useQuery();
@@ -80,7 +81,7 @@ export function AccountTabs() {
             </TabsContent>
 
             <TabsContent value="manage-products" className="mt-0 p-0">
-              <ComingSoon title="Manage Products" />
+              <ManageProducts />
             </TabsContent>
           </>
         )}
