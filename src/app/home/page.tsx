@@ -16,7 +16,7 @@ export default function HomePage() {
     });
 
   return (
-    <div className="mx-auto mb-60 flex flex-col gap-8 px-24 py-8">
+    <div className="mx-auto mb-60 flex flex-col gap-12 px-24 py-8">
       {/* Banner Section */}
       <Image
         src="/home-banner.png"

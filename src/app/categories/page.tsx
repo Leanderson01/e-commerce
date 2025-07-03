@@ -5,6 +5,7 @@ import { ProductGrid } from "./_components/product-grid";
 import { CategoryFilters } from "./_components/category-filters";
 import { PriceFilters } from "./_components/price-filters";
 import { StockFilters } from "./_components/stock-filters";
+import Image from "next/image";
 
 interface FilterState {
   categoryId?: string;
@@ -30,7 +31,15 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="mx-auto px-24 py-8">
+    <div className="mx-auto flex flex-col gap-12 px-24 py-8">
+      {/* Banner Section */}
+      <Image
+        src="/All.jpg"
+        alt="Banner"
+        width={1248}
+        height={637}
+        className="w-full rounded-lg object-cover"
+      />
       {/* Main Content */}
       <div className="flex gap-8">
         {/* Left Sidebar - Filters */}
