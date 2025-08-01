@@ -22,6 +22,7 @@ import {
 import { Badge } from "~/components/ui/badge";
 import { api } from "~/trpc/react";
 import { Skeleton } from "~/components/ui/skeleton";
+import Image from "next/image";
 
 interface OrderDetailsPageProps {
   params: Promise<{
@@ -130,7 +131,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
           <CardHeader>
             <CardTitle>Order Not Found</CardTitle>
             <CardDescription>
-              {error?.message || "The order you're looking for doesn't exist."}
+              {error?.message ?? "The order you're looking for doesn't exist."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -161,8 +162,8 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
               Placed on {formatDate(order.orderDate)}
             </p>
           </div>
-          <Badge className={`text-sm ${getStatusColor(order.status)}`}>
-            {getStatusText(order.status)}
+          <Badge className={`text-sm ${getStatusColor(order.status ?? "")}`}>
+            {getStatusText(order.status ?? "")}
           </Badge>
         </div>
       </div>
@@ -202,9 +203,9 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                           <div className="flex items-center gap-3">
                             <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md">
                               {item._product?.imageUrl ? (
-                                <img
-                                  src={item._product.imageUrl}
-                                  alt={item._product.name}
+                                <Image
+                                  src={item._product?.imageUrl ?? ""}
+                                  alt={item._product?.name ?? ""}
                                   className="h-full w-full object-cover"
                                 />
                               ) : (
@@ -268,7 +269,7 @@ export default function OrderDetailsPage({ params }: OrderDetailsPageProps) {
                     <User className="text-muted-foreground h-4 w-4" />
                     <span className="text-sm">
                       <span className="font-medium">Customer:</span>{" "}
-                      {order._user.profile?.fullName || order._user.email}
+                      {order._user.email ?? "N/A"}
                     </span>
                   </div>
                 )}

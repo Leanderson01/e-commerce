@@ -44,7 +44,11 @@ const navigationItems = [
 
 const userMenuItems = [
   { name: "Profile", href: "/home/profile", icon: User as React.ElementType },
-  { name: "Orders", href: "/home/orders", icon: Package as React.ElementType },
+  {
+    name: "Orders",
+    href: "/home/profile?tab=orders",
+    icon: Package as React.ElementType,
+  },
   {
     name: "Settings",
     href: "/home/profile?tab=account-details",

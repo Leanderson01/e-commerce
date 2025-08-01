@@ -6,10 +6,12 @@ import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useSalesReport } from "~/components/reports/SalesReport";
 
 export function AccountDashboard() {
   const { data: user, isLoading } = api.auth.user.getUserLogged.useQuery();
   const router = useRouter();
+  const { generateReport, isLoading: isGeneratingReport } = useSalesReport();
 
   // Get some basic stats for admin
   const { data: ordersData } = api.order.list.getAllOrders.useQuery(
@@ -22,8 +24,19 @@ export function AccountDashboard() {
     { enabled: user?.role === "admin" },
   );
 
-  const handleExportReport = () => {
-    toast.info("Export Report functionality coming soon!");
+  const handleExportReport = async () => {
+    try {
+      toast.info("Generating sales report...");
+      const success = await generateReport();
+      if (success) {
+        toast.success("Sales report generated successfully!");
+      } else {
+        toast.error("Failed to generate sales report");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Error generating sales report");
+    }
   };
 
   const handleManageProducts = () => {
@@ -145,9 +158,13 @@ export function AccountDashboard() {
               </div>
 
               <div className="border-t pt-4">
-                <Button onClick={handleExportReport} className="w-full">
+                <Button
+                  onClick={handleExportReport}
+                  className="w-full"
+                  disabled={isGeneratingReport}
+                >
                   <BarChart3 className="mr-2 h-4 w-4" />
-                  Export Report
+                  {isGeneratingReport ? "Generating..." : "Export Report"}
                 </Button>
               </div>
             </CardContent>

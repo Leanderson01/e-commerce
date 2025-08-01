@@ -24,6 +24,14 @@ export interface Cart {
   total: number;
 }
 
+interface TemporaryCartItem {
+  productId: string;
+  quantity: number;
+  unitPrice: string;
+  productName: string;
+  productImageUrl?: string | null;
+}
+
 interface CartContextType {
   cart: Cart | null;
   isOpen: boolean;
@@ -39,22 +47,58 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+// Local storage key for temporary cart
+const TEMP_CART_KEY = "temp_cart";
+
+// Helper functions for temporary cart
+const getTempCart = (): TemporaryCartItem[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(TEMP_CART_KEY);
+    return stored ? (JSON.parse(stored) as TemporaryCartItem[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+const setTempCart = (items: TemporaryCartItem[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(TEMP_CART_KEY, JSON.stringify(items));
+  } catch {
+    // Ignore localStorage errors
+  }
+};
+
+const clearTempCart = () => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(TEMP_CART_KEY);
+  } catch {
+    // Ignore localStorage errors
+  }
+};
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [itemCount, setItemCount] = useState(0);
+  const [tempCart, setTempCartState] = useState<TemporaryCartItem[]>([]);
 
-  // Get cart data
+  // Check if user is logged in
+  const { data: currentUser } = api.auth.user.getCurrentUser.useQuery();
+
+  // Get cart data (only if user is logged in)
   const { data: cart, refetch: refetchCart } = api.cart.list.getCart.useQuery(
     {},
     {
-      enabled: false, // We'll manually trigger this when needed
+      enabled: !!currentUser, // Only fetch if user is logged in
     },
   );
 
   // Add to cart mutation
   const addToCartMutation = api.cart.form.addToCart.useMutation({
     onSuccess: () => {
-      refetchCart();
+      void refetchCart();
       toast.success("Product added to cart");
     },
     onError: (error) => {
@@ -65,7 +109,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Update cart item mutation
   const updateCartItemMutation = api.cart.form.updateCartItem.useMutation({
     onSuccess: () => {
-      refetchCart();
+      void refetchCart();
       toast.success("Cart updated");
     },
     onError: (error) => {
@@ -76,7 +120,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Remove from cart mutation
   const removeFromCartMutation = api.cart.form.removeFromCart.useMutation({
     onSuccess: () => {
-      refetchCart();
+      void refetchCart();
       toast.success("Product removed from cart");
     },
     onError: (error) => {
@@ -87,7 +131,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Clear cart mutation
   const clearCartMutation = api.cart.form.clearCart.useMutation({
     onSuccess: () => {
-      refetchCart();
+      void refetchCart();
       toast.success("Cart cleared");
     },
     onError: (error) => {
@@ -95,37 +139,159 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     },
   });
 
+  // Load temporary cart on mount
+  useEffect(() => {
+    if (!currentUser) {
+      const tempItems = getTempCart();
+      setTempCartState(tempItems);
+    }
+  }, [currentUser]);
+
+  // Sync temporary cart when user logs in
+  useEffect(() => {
+    if (currentUser && tempCart.length > 0) {
+      // Sync temp cart items to server
+      const syncTempCart = async () => {
+        try {
+          for (const item of tempCart) {
+            await addToCartMutation.mutateAsync({
+              productId: item.productId,
+              quantity: item.quantity,
+            });
+          }
+          clearTempCart();
+          setTempCartState([]);
+          toast.success("Cart synced successfully!");
+        } catch (error) {
+          console.error(error);
+          toast.error("Failed to sync cart");
+        }
+      };
+      void syncTempCart();
+    }
+  }, [currentUser, tempCart, addToCartMutation]);
+
   // Update item count when cart changes
   useEffect(() => {
-    if (cart?._items) {
+    if (currentUser && cart?._items) {
       const count = cart._items.reduce(
         (total, item) => total + item.quantity,
         0,
       );
       setItemCount(count);
+    } else if (!currentUser) {
+      const count = tempCart.reduce((total, item) => total + item.quantity, 0);
+      setItemCount(count);
     } else {
       setItemCount(0);
     }
-  }, [cart]);
+  }, [cart, tempCart, currentUser]);
 
-  const addToCart = async (productId: string, quantity: number = 1) => {
-    await addToCartMutation.mutateAsync({ productId, quantity });
+  const addToCart = async (productId: string, quantity = 1) => {
+    if (currentUser) {
+      // User is logged in, use server cart
+      await addToCartMutation.mutateAsync({ productId, quantity });
+    } else {
+      // User is not logged in, use temporary cart
+      try {
+        // Get product info for temporary cart
+        const productResponse = await fetch(`/api/products/${productId}`);
+        if (!productResponse.ok) {
+          throw new Error("Failed to get product info");
+        }
+        const product = (await productResponse.json()) as {
+          price: string;
+          name: string;
+          imageUrl: string | null;
+        };
+
+        const newTempItem: TemporaryCartItem = {
+          productId,
+          quantity,
+          unitPrice: product.price,
+          productName: product.name,
+          productImageUrl: product.imageUrl,
+        };
+
+        const currentTempCart = getTempCart();
+        const existingItemIndex = currentTempCart.findIndex(
+          (item) => item.productId === productId,
+        );
+
+        if (existingItemIndex >= 0) {
+          // Update existing item
+          currentTempCart[existingItemIndex]!.quantity += quantity;
+        } else {
+          // Add new item
+          currentTempCart.push(newTempItem);
+        }
+
+        setTempCart(currentTempCart);
+        setTempCartState(currentTempCart);
+        toast.success("Product added to cart");
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to add product to cart");
+      }
+    }
   };
 
   const updateCartItem = async (cartItemId: string, quantity: number) => {
-    await updateCartItemMutation.mutateAsync({ cartItemId, quantity });
+    if (currentUser) {
+      await updateCartItemMutation.mutateAsync({ cartItemId, quantity });
+    } else {
+      // For temp cart, we'll use productId as cartItemId
+      const currentTempCart = getTempCart();
+      const itemIndex = currentTempCart.findIndex(
+        (item) => item.productId === cartItemId,
+      );
+
+      if (itemIndex >= 0) {
+        if (quantity <= 0) {
+          currentTempCart.splice(itemIndex, 1);
+        } else {
+          currentTempCart[itemIndex]!.quantity = quantity;
+        }
+        setTempCart(currentTempCart);
+        setTempCartState(currentTempCart);
+        toast.success("Cart updated");
+      }
+    }
   };
 
   const removeFromCart = async (cartItemId: string) => {
-    await removeFromCartMutation.mutateAsync({ cartItemId });
+    if (currentUser) {
+      await removeFromCartMutation.mutateAsync({ cartItemId });
+    } else {
+      // For temp cart, we'll use productId as cartItemId
+      const currentTempCart = getTempCart();
+      const itemIndex = currentTempCart.findIndex(
+        (item) => item.productId === cartItemId,
+      );
+
+      if (itemIndex >= 0) {
+        currentTempCart.splice(itemIndex, 1);
+        setTempCart(currentTempCart);
+        setTempCartState(currentTempCart);
+        toast.success("Product removed from cart");
+      }
+    }
   };
 
   const clearCart = async () => {
-    await clearCartMutation.mutateAsync({});
+    if (currentUser) {
+      await clearCartMutation.mutateAsync({});
+    } else {
+      clearTempCart();
+      setTempCartState([]);
+      toast.success("Cart cleared");
+    }
   };
 
   const openCart = () => {
-    refetchCart();
+    if (currentUser) {
+      void refetchCart();
+    }
     setIsOpen(true);
   };
 
@@ -133,8 +299,39 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setIsOpen(false);
   };
 
+  // Get current cart data (server cart or temp cart)
+  const getCurrentCart = () => {
+    if (currentUser && cart) {
+      return cart;
+    } else if (!currentUser) {
+      // Convert temp cart to Cart format for display
+      const total = tempCart.reduce(
+        (sum, item) => sum + Number(item.unitPrice) * item.quantity,
+        0,
+      );
+      return {
+        id: "temp",
+        userId: "temp",
+        _items: tempCart.map((item, index) => ({
+          id: `temp-${index}`,
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          _product: {
+            id: item.productId,
+            name: item.productName,
+            price: item.unitPrice,
+            imageUrl: item.productImageUrl,
+          },
+        })),
+        total,
+      };
+    }
+    return null;
+  };
+
   const value: CartContextType = {
-    cart,
+    cart: getCurrentCart() as Cart | null,
     isOpen,
     itemCount,
     addToCart,
@@ -144,10 +341,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     openCart,
     closeCart,
     isLoading:
-      addToCartMutation.isLoading ||
-      updateCartItemMutation.isLoading ||
-      removeFromCartMutation.isLoading ||
-      clearCartMutation.isLoading,
+      addToCartMutation.isPending ??
+      updateCartItemMutation.isPending ??
+      removeFromCartMutation.isPending ??
+      clearCartMutation.isPending,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

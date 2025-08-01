@@ -6,6 +6,7 @@ import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { toast } from "sonner";
 import { ShoppingCart, Eye, Heart } from "lucide-react";
+import { useCart } from "~/contexts/CartContext";
 
 interface Product {
   id: string;
@@ -28,6 +29,17 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const price = parseFloat(product.price);
   const isInStock = product.stockQuantity && product.stockQuantity > 0;
+  const { addToCart, isLoading } = useCart();
+
+  const handleAddToCart = async () => {
+    if (!isInStock) return;
+
+    try {
+      await addToCart(product.id, 1);
+    } catch (error) {
+      toast.error("Failed to add product to cart");
+    }
+  };
 
   return (
     <div className="group relative overflow-hidden">
@@ -59,10 +71,8 @@ export function ProductCard({ product }: ProductCardProps) {
             size="icon"
             variant="secondary"
             className="h-10 w-10 rounded-full bg-white hover:bg-gray-100"
-            disabled={!isInStock}
-            onClick={() => {
-              toast.info("Add to cart functionality coming soon!");
-            }}
+            disabled={!isInStock || isLoading}
+            onClick={handleAddToCart}
           >
             <ShoppingCart className="h-4 w-4" />
           </Button>
