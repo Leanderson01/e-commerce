@@ -5,6 +5,7 @@ import { DM_Sans } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
 import { ThemeProvider } from "~/components/theme-provider";
+import { CartProvider } from "~/contexts/CartContext";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
@@ -35,8 +36,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TRPCReactProvider>
-            {children}
-            <Toaster position="top-right" />
+            <CartProvider>
+              {children}
+              <Toaster position="top-right" />
+            </CartProvider>
           </TRPCReactProvider>
         </ThemeProvider>
       </body>

@@ -3,8 +3,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { AccountDashboard } from "./account-dashboard";
 import { AccountDetails } from "./account-details";
-import { ComingSoon } from "./coming-soon";
 import { LogoutButton } from "./logout-button";
+import { OrdersTab } from "~/components/orders/OrdersTab";
 import { api } from "~/trpc/react";
 import { ManageCategories } from "./manage-categories";
 import { ManageProducts } from "./manage-products";
@@ -100,7 +100,7 @@ export function AccountTabs() {
         </TabsContent>
 
         <TabsContent value="orders" className="mt-0 p-0">
-          <ComingSoon title="Orders" />
+          <OrdersTab />
         </TabsContent>
 
         {isAdmin && (

@@ -14,7 +14,7 @@ import {
 } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Minus, Plus, ShoppingCart, ArrowLeft, Heart } from "lucide-react";
-import { toast } from "sonner";
+import { useCart } from "~/contexts/CartContext";
 
 interface ProductPageProps {
   params: Promise<{
@@ -26,7 +26,7 @@ export default function ProductPage({ params }: ProductPageProps) {
   const { id } = React.use(params);
   const router = useRouter();
   const [quantity, setQuantity] = useState(1);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const { addToCart, isLoading: isAddingToCart } = useCart();
 
   const socialLinks = [
     { name: "Facebook", href: "#", src: "/icons/face.png" },
@@ -42,26 +42,9 @@ export default function ProductPage({ params }: ProductPageProps) {
     error,
   } = api.product.list.getProductById.useQuery({ id });
 
-  // Add to cart mutation
-  const addToCartMutation = api.cart.form.addToCart.useMutation({
-    onSuccess: () => {
-      toast.success("Product added to cart successfully!");
-      setIsAddingToCart(false);
-    },
-    onError: (error) => {
-      toast.error(error.message ?? "Failed to add product to cart");
-      setIsAddingToCart(false);
-    },
-  });
-
   const handleAddToCart = async () => {
     if (!productData?.data) return;
-
-    setIsAddingToCart(true);
-    addToCartMutation.mutate({
-      productId: id,
-      quantity,
-    });
+    await addToCart(id, quantity);
   };
 
   const handleQuantityChange = (action: "increase" | "decrease") => {

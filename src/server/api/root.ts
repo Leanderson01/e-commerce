@@ -4,6 +4,8 @@ import { authRouter } from "./routers/auth/auth.router";
 import { productRouter } from "./routers/product/product.router";
 import { categoryRouter } from "./routers/category/category.router";
 import { cartRouter } from "./routers/cart/cart.router";
+import { orderRouter } from "./routers/order/order.router";
+import { reportRouter } from "./routers/report/report.router";
 
 export const appRouter = createTRPCRouter({
   hello: publicProcedure.query(() => {
@@ -14,6 +16,8 @@ export const appRouter = createTRPCRouter({
   product: productRouter,
   category: categoryRouter,
   cart: cartRouter,
+  order: orderRouter,
+  report: reportRouter,
 });
 
 export type AppRouter = typeof appRouter;
